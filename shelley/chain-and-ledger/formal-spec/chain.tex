@@ -1771,13 +1771,8 @@ The transition uses a few helper functions defined in Figure~\ref{fig:funcs:chai
       \var{bhb} \leteq \bhbody{bh}
       &
       \var{s} \leteq \bslot{bhb}
-      \\
-      (\wcard,~\wcard,~\wcard,~(\wcard,~\wcard,~\wcard,~\wcard,~\var{pp}),~\wcard,~\wcard) \leteq \var{nes}
       \\~\\
-      \fun{prtlSeqChecks}~\var{lab}~\var{bh}\\
-      \fun{chainChecks}~
-        \MaxMajorPV~(\fun{maxHeaderSize}~\var{pp},~\fun{maxBlockSize}~\var{pp},~\fun{pv}~\var{pp})~
-        \var{bh}
+      \fun{prtlSeqChecks}~\var{lab}~\var{bh}
       \\~\\
       {
         \vdash\var{nes}\trans{\hyperref[fig:rules:tick]{tick}}{\var{s}}\var{nes'}
@@ -1786,15 +1781,20 @@ The transition uses a few helper functions defined in Figure~\ref{fig:funcs:chai
         \leteq\var{nes} \\
       (\var{e_2},~\wcard,~\var{b_{cur}},~\var{es},~\wcard,~\wcard,~\var{pd})
         \leteq\var{nes'} \\
-        (\var{acnt},~\wcard,\var{ls},~\wcard,~\var{pp'})\leteq\var{es}\\
+        (\var{acnt},~\wcard,\var{ls},~\wcard,~\var{pp})\leteq\var{es}\\
         ( \wcard,
           ( (\wcard,~\wcard,~\wcard,~\wcard,~\var{genDelegs},~\wcard),~
           (\wcard,~\wcard,~\wcard)))\leteq\var{ls}\\
           \var{ne} \leteq  \var{e_1} \neq \var{e_2}\\
-          \eta_{ph} \leteq \prevHashToNonce{(\lastAppliedHash{lab})} \\
+          \eta_{ph} \leteq \prevHashToNonce{(\lastAppliedHash{lab})}
+          \\~\\
+          \fun{chainChecks}~
+            \MaxMajorPV~(\fun{maxHeaderSize}~\var{pp},~\fun{maxBlockSize}~\var{pp},~\fun{pv}~\var{pp})~
+            \var{bh}
+          \\~\\
       {
         {\begin{array}{c}
-        \var{pp'} \\
+        \var{pp} \\
         \eta_c \\
         \eta_\var{ph} \\
         \end{array}}
@@ -1811,7 +1811,7 @@ The transition uses a few helper functions defined in Figure~\ref{fig:funcs:chai
       }\\~\\~\\
       {
         {\begin{array}{c}
-            (\fun{d}~\var{pp'}) \\
+            (\fun{d}~\var{pp}) \\
             \var{pd} \\
             \var{genDelegs} \\
             \eta_0' \\
@@ -1831,7 +1831,7 @@ The transition uses a few helper functions defined in Figure~\ref{fig:funcs:chai
       } \\~\\~\\
       {
         {\begin{array}{c}
-                 \var{pp'} \\
+                 \var{pp} \\
                  \var{acnt}
         \end{array}}
         \vdash

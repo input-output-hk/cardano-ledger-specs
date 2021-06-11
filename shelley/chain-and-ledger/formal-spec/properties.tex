@@ -31,72 +31,119 @@ will not pass either.
 
 First we define the header-only version of the $\mathsf{CHAIN}$ transition,
 which we call $\mathsf{CHAINHEAD}$.
-It is very similiar to $\mathsf{CHAIN}$, the only difference being that
-it does not call $\mathsf{BBODY}$.
+It is very similar to $\mathsf{CHAIN}$, the differences being:
+\begin{itemize}
+  \item The $\mathsf{CHAINHEAD}$ signal is not a block, but a block header ($\BHeader$).
+  \item $\mathsf{CHAINHEAD}$ does not call $\mathsf{BBODY}$.
+  \item $\mathsf{CHAINHEAD}$ does not call $\mathsf{TICK}$, but instead
+    calls the similar $\mathsf{TICKF}$, which differs by
+    not calling the reward update transition $\mathsf{RUPD}$.
+  \item $\mathsf{CHAINHEAD}$ does not store the new epoch state $\var{nes}$ in
+    its state, but rather contains it in the environment.
+    We will conveniently \textbf{abuse the tuple notation} and write
+    $(nes, \tilde{s}) = s$
+    for splitting the chain state into the new epoch state and the remaiing fields.
+\end{itemize}
+
+\begin{figure}[ht]
+  \begin{equation}\label{eq:tickf}
+    \inference[TickForecast]
+    {
+      {
+        \vdash
+        \var{nes}
+        \trans{\hyperref[fig:rules:new-epoch]{newepoch}}{\epoch{slot}}
+        \var{nes}'
+      }
+      \\~\\
+      (\var{e_\ell'},~\var{b_{prev}'},~\var{b_{cur}'},~\var{es'},~\var{ru'},~\var{pd'})
+      \leteq\var{nes'}
+      \\
+      \var{es''}\leteq\fun{adoptGenesisDelegs}~\var{es'}~\var{slot}
+      \\
+      \var{forecast}\leteq
+      (\var{e_\ell'},~\var{b_{prev}'},~\var{b_{cur}'},~\var{es''},~\var{ru'},~\var{pd'})
+      \\~\\
+    }
+    {
+      \vdash\var{nes}\trans{tickf}{\var{slot}}\varUpdate{\var{forecast}}
+    }
+  \end{equation}
+  \caption{Tick Forecast rules}
+  \label{fig:rules:tickf}
+\end{figure}
+
+\clearpage
 
 \begin{figure}[ht]
   \begin{equation}\label{eq:chain-head}
     \inference[ChainHead]
     {
-      \var{bh} \leteq \bheader{block}
+      \var{bhb} \leteq \bhbody{bh}
       &
-      \var{gkeys} \leteq \fun{getGKeys}~\var{nes}
-      &
-      \var{s} \leteq \bslot{(\bhbody{bh})}
-      \\
-      (\wcard,~\wcard,~\wcard,~(\wcard,~\wcard,~\wcard,~\var{pp}),~\wcard,~\wcard,\wcard) \leteq \var{nes}
+      \var{s} \leteq \bslot{bhb}
       \\~\\
-      \fun{chainChecks}~\var{pp}~\var{bh}
+      \fun{prtlSeqChecks}~\var{lab}~\var{bh}
       \\~\\
       {
-        {\begin{array}{c}
-           \var{gkeys} \\
-         \end{array}}
-        \vdash\var{nes}\trans{\hyperref[fig:rules:tick]{tick}}{\var{s}}\var{nes'}
+        \vdash\var{nes}\trans{\hyperref[fig:rules:tickf]{tickf}}{\var{s}}\var{forecast}
       } \\~\\
-      (\var{e_1},~\wcard,~\wcard,~\wcard,~\wcard,~\wcard,\wcard)
+      (\var{e_1},~\wcard,~\wcard,~\wcard,~\wcard,~\wcard)
         \leteq\var{nes} \\
-      (\var{e_2},~\wcard,~\wcard,~\var{es},~\wcard,~\var{pd},\var{osched})
-        \leteq\var{nes'} \\
-        (\wcard,~\wcard,\var{ls},~\wcard,~\var{pp'})\leteq\var{es}\\
+      (\var{e_2},~\wcard,~\wcard,~\var{es},~\wcard,~\wcard,~\var{pd})
+        \leteq\var{forecast} \\
+        (\var{acnt},~\wcard,\var{ls},~\wcard,~\var{pp})\leteq\var{es}\\
         ( \wcard,
-          ( (\wcard,~\wcard,~\wcard,~\wcard,~\wcard,~\var{genDelegs}),~
+          ( (\wcard,~\wcard,~\wcard,~\wcard,~\var{genDelegs},~\wcard),~
           (\wcard,~\wcard,~\wcard)))\leteq\var{ls}\\
           \var{ne} \leteq  \var{e_1} \neq \var{e_2}\\
+          \eta_{ph} \leteq \prevHashToNonce{(\lastAppliedHash{lab})} \\~\\
+      \fun{chainChecks}~
+        \MaxMajorPV~(\fun{maxHeaderSize}~\var{pp},~\fun{maxBlockSize}~\var{pp},~\fun{pv}~\var{pp})~
+        \var{bh}\\~\\
       {
         {\begin{array}{c}
-            \var{pp'} \\
-            \var{osched} \\
+        \var{pp} \\
+        \eta_c \\
+        \eta_\var{ph} \\
+        \end{array}}
+        \vdash
+        {\left(\begin{array}{c}
+        \eta_0 \\
+        \eta_h \\
+        \end{array}\right)}
+        \trans{\hyperref[fig:rules:tick-nonce]{tickn}}{\var{ne}}
+        {\left(\begin{array}{c}
+        \eta_0' \\
+        \eta_h' \\
+        \end{array}\right)}
+      }\\~\\~\\
+      {
+        {\begin{array}{c}
+            (\fun{d}~\var{pp}) \\
             \var{pd} \\
             \var{genDelegs} \\
-            \var{s_{now}} \\
-            \var{ne}
+            \eta_0' \\
          \end{array}}
         \vdash
         {\left(\begin{array}{c}
               \var{cs} \\
-              \var{lab} \\
-              \eta_0 \\
               \eta_v \\
               \eta_c \\
-              \eta_h \\
         \end{array}\right)}
         \trans{\hyperref[fig:rules:prtcl]{prtcl}}{\var{bh}}
         {\left(\begin{array}{c}
               \var{cs'} \\
-              \var{lab'} \\
-              \eta_0' \\
               \eta_v' \\
               \eta_c' \\
-              \eta_h' \\
         \end{array}\right)}
       } \\~\\~\\
+      \var{lab'}\leteq (\bblockno{bhb},~\var{s},~\bhash{bh} ) \\
     }
     {
-      \var{s_{now}}
+      \var{nes}
       \vdash
       {\left(\begin{array}{c}
-            \var{nes} \\
             \var{cs} \\
             \eta_0 \\
             \eta_v \\
@@ -106,7 +153,6 @@ it does not call $\mathsf{BBODY}$.
       \end{array}\right)}
       \trans{chainhead}{\var{bh}}
       {\left(\begin{array}{c}
-            \varUpdate{\var{nes}'} \\
             \varUpdate{\var{cs}'} \\
             \varUpdate{\eta_0'} \\
             \varUpdate{\eta_v'} \\
@@ -121,7 +167,7 @@ it does not call $\mathsf{BBODY}$.
 \end{figure}
 
 \begin{property}[Header only validation]\label{prop:header-only-validation}
-  For all environments $e$, states $s$ with slot number $t$\footnote{i.e. the
+  For all states $s$ with slot number $t$\footnote{i.e. the
     component $\var{s_\ell}$ of the last applied block of $s$ equals $t$},
     and chain extensions $E$ with corresponding headers $H$ such that:
   %
@@ -132,29 +178,31 @@ it does not call $\mathsf{BBODY}$.
   we have:
   %
   $$
-  e \vdash s \transtar{\hyperref[fig:rules:chain]{chain}}{E} s'
+  \vdash s \transtar{\hyperref[fig:rules:chain]{chain}}{E} s'
   \implies
-  e \vdash s \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} s''
+  \var{nes} \vdash \tilde{s} \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} s''
   $$
-  where $t_E$ is the maximum slot number appearing in the blocks contained in
+  where $s=(\var{nes},~\tilde{s})$,
+  $t_E$ is the maximum slot number appearing in the blocks contained in
   $E$, and $H$ is obtained from $E$ by applying $\fun{bheader}$ to each block in $E$.
 \end{property}
 
 \begin{property}[Body only validation]\label{prop:body-only-validation}
-  For all environments $e$, states $s$ with slot number $t$, and chain
+  For all states $s$ with slot number $t$, and chain
   extensions $E = [b_0, \ldots, b_n]$ with corresponding headers $H$ such that:
   $$
   0 \leq t_E - t  \leq \StabilityWindow
   $$
   we have that for all $i \in [1, n]$:
   $$
-  e \vdash s \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} s_{h}
+  \var{nes} \vdash \tilde{s} \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} s_{h}
   \wedge
-  e \vdash s \transtar{\hyperref[fig:rules:chain]{chain}}{[b_0 \ldots b_{i-1}]} s_{i-1}
+  \vdash (\var{nes},~\tilde{s}) \transtar{\hyperref[fig:rules:chain]{chain}}{[b_0 \ldots b_{i-1}]} s_{i-1}
   \implies
-  e_{i-1} \vdash s_{i-1}\trans{\hyperref[fig:rules:chainhead]{chainhead}}{h_i} s'_{h}
+  \var{nes'} \vdash \tilde{s}_{i-1}\trans{\hyperref[fig:rules:chainhead]{chainhead}}{h_i} s'_{h}
   $$
-  where $t_E$ is the maximum slot number appearing in the blocks contained in $E$.
+  where $s_{i-1}=(\var{nes'},~\tilde{s}_{i-1})$,
+  $t_E$ is the maximum slot number appearing in the blocks contained in $E$.
 \end{property}
 
 Property~\ref{prop:body-only-validation} states that if we validate a sequence
@@ -165,7 +213,7 @@ $H = [h_0, \ldots, h_n]$ corresponding to blocks in $E = [b_0, \ldots, b_n]$ is
 valid according to the $\mathsf{chainhead}$ transition system:
 %
 $$
-e \vdash s \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} s'
+\var{nes} \vdash \tilde{s} \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H} \tilde{s'}
 $$
 %
 Assume the bodies of $E$ are valid
@@ -175,12 +223,12 @@ the $\mathsf{chain}$ rule. Assume that there is a $b_j \in E$ such that it is
 validation. Then:
 %
 $$
-e \vdash s \transtar{\hyperref[fig:rules:chain]{chain}}{[b_0, \ldots b_{j-1}]} s_j
+\vdash (\var{nes},~\tilde{s}) \transtar{\hyperref[fig:rules:chain]{chain}}{[b_0, \ldots b_{j-1}]} s_j
 $$
 But by Property~\ref{prop:body-only-validation} we know that
 %
 $$
-e_j \vdash s_j \trans{\hyperref[fig:rules:chainhead]{chainhead}}{h_j} s_{j+1}
+\var{nes}_j \vdash \tilde{s}_j \trans{\hyperref[fig:rules:chainhead]{chainhead}}{h_j} \tilde{s}_{j+1}
 $$
 which means that block $b_j$ has valid headers, and this in turn means that the
 validation of $b_j$ according to the chain rules must have failed because it
@@ -193,13 +241,14 @@ block bodies were valid.
   we have that if for all alternative chains $C'_1$, $\size{C'_1} \leq \frac{\StabilityWindow}{2}$, with
   corresponding headers $H'_1$
   $$
-  e \vdash s_0 \transtar{\hyperref[fig:rules:chain]{chain}}{C_0;b} s_1 \transtar{\hyperref[fig:rules:chain]{chain}}{C_1} s_2
+  \vdash s_0 \transtar{\hyperref[fig:rules:chain]{chain}}{C_0;b} s_1 \transtar{\hyperref[fig:rules:chain]{chain}}{C_1} s_2
   \wedge
-  e \vdash s_1 \transtar{\hyperref[fig:rules:chain]{chain}}{C_1'} s'_1
+  \vdash s_1 \transtar{\hyperref[fig:rules:chain]{chain}}{C_1'} s'_1
   \implies
-  (\fun{f}~(\bheader{b})~s_2) \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H'_1} s_h
+  \var{nes} \vdash \tilde{s} \transtar{\hyperref[fig:rules:chainhead]{chainhead}}{H'_1} s_h
   $$
 \end{property}
+where $\fun{f}~(\bheader{b})~s_2=(\var{nes},~\tilde{s})$.
 
 Property~\ref{prop:roll-back-funk} expresses the fact the there is a function
 that allow us to recover the header-only state by rolling back at most $k$
