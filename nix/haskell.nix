@@ -29,6 +29,7 @@ let
     compiler-nix-name = compiler;
     modules = [
       {
+        packages.plutus-core.components.library.ghcOptions = [ "-fexternal-interpreter" ];
         packages.byron-spec-chain.configureFlags = [ "--ghc-option=-Werror" ];
         packages.byron-spec-ledger.configureFlags = [ "--ghc-option=-Werror" ];
         packages.delegation.configureFlags = [ "--ghc-option=-Werror" ];

@@ -72,12 +72,12 @@ test-suite cardano-ledger-alonzo-test
   hs-source-dirs:
     test
   other-modules:
-    Test.Cardano.Ledger.Alonzo.Trials
     Test.Cardano.Ledger.Alonzo.Golden
     Test.Cardano.Ledger.Alonzo.Serialisation.Tripping
     Test.Cardano.Ledger.Alonzo.Examples
     Test.Cardano.Ledger.Alonzo.Translation
     Test.Cardano.Ledger.Alonzo.Serialisation.CDDL
+    Test.Cardano.Ledger.Alonzo.Trials
   build-depends:
     base16-bytestring,
     bytestring,

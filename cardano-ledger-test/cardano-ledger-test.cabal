@@ -89,7 +89,9 @@ benchmark bench
     bytestring,
     cardano-binary,
     cardano-crypto-class,
+    cardano-ledger-alonzo,
     cardano-ledger-core,
+    cardano-ledger-alonzo-test,
     cardano-ledger-shelley-ma-test,
     cardano-ledger-shelley-ma,
     containers,
@@ -97,8 +99,35 @@ benchmark bench
     data-default-class,
     deepseq,
     QuickCheck,
+    small-steps,
     shelley-spec-ledger,
-    shelley-spec-ledger-test
+    shelley-spec-ledger-test,
+    tasty-quickcheck,
+    tasty
+  ghc-options:
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -O2
+
+benchmark benchProperty
+  import:             base, project-config
+
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:
+    benchProperty
+  main-is:          Main.hs
+  other-modules:
+  build-depends:
+    cardano-ledger-alonzo,
+    cardano-ledger-alonzo-test,
+    cardano-ledger-shelley-ma-test,
+    QuickCheck,
+    small-steps,
+    shelley-spec-ledger,
+    shelley-spec-ledger-test,
+    tasty-quickcheck,
+    tasty
   ghc-options:
       -threaded
       -rtsopts

@@ -43,6 +43,7 @@ module Test.Cardano.Ledger.Alonzo.Trials
     d4,
     manytimes,
     search,
+    go,
   )
 where
 
@@ -246,8 +247,8 @@ fastPropertyTests :: TestTree
 fastPropertyTests =
   testGroup
     "Fast Alonzo Property Tests"
-    [ ( localOption (QuickCheckMaxRatio 45) $
-          testProperty "Chain and Ledger traces cover the relevant cases" (withMaxSuccess 10 (relevantCasesAreCovered @(AlonzoEra TestCrypto)))
+    [ ( localOption (QuickCheckMaxRatio 120) $
+          testProperty "Chain and Ledger traces cover the relevant cases" (relevantCasesAreCovered @(AlonzoEra TestCrypto))
       ),
       testProperty "total amount of Ada is preserved (Chain)" (withMaxSuccess 50 (adaPreservationChain @(AlonzoEra TestCrypto)))
     ]

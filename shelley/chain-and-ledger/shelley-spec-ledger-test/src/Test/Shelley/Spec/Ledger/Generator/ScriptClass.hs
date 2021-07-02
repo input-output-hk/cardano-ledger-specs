@@ -146,6 +146,8 @@ scriptKeyCombinations prox script = case quantify prox script of
     Just hk -> [[hk]]
     Nothing -> [[]]
 
+-- | Make a simple (non-combined, ie NO quantifer like All, Any, MofN, etc.) script.
+--   'basescript' is a method of ScriptClass, and is different for every Era.
 mkScriptFromKey :: forall era. (ScriptClass era) => KeyPair 'Witness (Crypto era) -> Core.Script era
 mkScriptFromKey = (basescript (Proxy :: Proxy era) . hashKey . vKey)
 
@@ -224,6 +226,9 @@ mkScriptCombinations msigs =
       ) ::
         [(Core.Script era, Core.Script era)]
 
+-- | Make list of script pairs (payment,staking). These are non-combined scripts
+--   Ie NO quantifer like All, Any, MofN, etc.) scripts.
+--   In post Shelley Eras, either Keylock or Require Start-Finish scripts.
 baseScripts ::
   forall era.
   ScriptClass era =>
@@ -231,6 +236,9 @@ baseScripts ::
   [(Core.Script era, Core.Script era)]
 baseScripts c = mkScripts @era (keyPairs c)
 
+-- | Make a list of script pairs (payment,staking). Each of these are combined scripts.
+--   I.e.  All, Any, MofN, etc. These come from combining the the first N (numBaseScripts) baseScripts
+--   When N==3, we get about 150 combined scripts.
 combinedScripts ::
   forall era.
   ScriptClass era =>

@@ -24,6 +24,7 @@ import Cardano.Ledger.Mary.Value
     PolicyID (..),
     Value (..),
     policies,
+    valueFromList,
   )
 import Cardano.Ledger.ShelleyMA.Rules.Utxo (scaledMinDeposit)
 import Cardano.Ledger.ShelleyMA.Timelocks (Timelock (..))
@@ -151,7 +152,7 @@ red = AssetName $ BS.pack "redCoin"
 genRed :: CryptoClass.Crypto c => Gen (Value c)
 genRed = do
   n <- genInteger coloredCoinMinMint coloredCoinMaxMint
-  pure $ Value 0 (Map.singleton redCoinId (Map.singleton red n))
+  pure $ valueFromList 0 [(redCoinId,red,n)]
 
 --------------------------------------------------------
 -- Blue Coins                                         --
@@ -177,7 +178,7 @@ genBlue :: CryptoClass.Crypto c => Gen (Value c)
 genBlue = do
   as <- QC.resize maxBlueMint $ QC.listOf genSingleBlue
   -- the transaction size gets too big if we mint too many assets
-  pure $ Value 0 (Map.singleton blueCoinId (Map.fromList as))
+  pure $ valueFromList 0 (map (\ (asset,count) -> (blueCoinId,asset,count)) as)
   where
     genSingleBlue = do
       n <- genInteger coloredCoinMinMint coloredCoinMaxMint
@@ -204,7 +205,7 @@ genYellow :: CryptoClass.Crypto c => Gen (Value c)
 genYellow = do
   xs <- QC.sublistOf [0 .. yellowNumAssets]
   as <- mapM genSingleYellow xs
-  pure $ Value 0 (Map.singleton yellowCoinId (Map.fromList as))
+  pure $  valueFromList 0 (map (\ (asset,count) -> (yellowCoinId,asset,count)) as)
   where
     genSingleYellow x = do
       y <- genInteger coloredCoinMinMint coloredCoinMaxMint

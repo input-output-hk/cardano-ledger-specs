@@ -43,7 +43,7 @@ import qualified Cardano.Crypto.Hash.Class as Hash
 import Cardano.Ledger.Coin (Coin (..), integerToWord64)
 import Cardano.Ledger.Compactible (Compactible (..))
 import qualified Cardano.Ledger.Crypto as CC
-import Cardano.Ledger.Pretty (PDoc, PrettyA (..), ppCoin, ppInteger, ppList, ppLong, ppScriptHash, ppSexp)
+import Cardano.Ledger.Pretty (PDoc, PrettyA (..), ppCoin, ppInteger, ppList, ppLong, ppScriptHash, ppSexp, ppString)
 import Cardano.Ledger.Serialization (decodeMap, encodeMap)
 import Cardano.Ledger.Val
   ( DecodeMint (..),
@@ -769,22 +769,28 @@ showValue v = show c ++ "\n" ++ unlines (map trans ts)
 
 -- | Turn the nested 'Value' map-of-maps representation into a flat sequence
 -- of policyID, asset name and quantity, plus separately the ada quantity.
-gettriples :: Value crypto -> (Integer, [(PolicyID crypto, AssetName, Integer)])
-gettriples (Value c m1) = (c, triples)
+gettriples' :: Value crypto -> (Integer, [(PolicyID crypto, AssetName, Integer)], [PolicyID crypto])
+gettriples' (Value c m1) = (c, triples, bad)
   where
     triples =
       [ (policyId, aname, amount)
         | (policyId, m2) <- assocs m1,
           (aname, amount) <- assocs m2
       ]
+    bad = Map.keys (Map.filter Map.null m1) -- This is a malformed value, not in cannonical form.
+
+gettriples :: Value crypto -> (Integer, [(PolicyID crypto, AssetName, Integer)])
+gettriples v = case gettriples' v of
+  (a, b, _) -> (a, b)
 
 -- =====================================
 -- Pretty printing functions
 
 ppValue :: Value crypto -> PDoc
-ppValue v = ppSexp "Value" [ppCoin (Coin n), ppList pptriple triples]
+ppValue v = case gettriples' v of
+  (n, triples, []) -> ppSexp "Value" [ppCoin (Coin n), ppList pptriple triples]
+  (n, triples, bad) -> ppSexp "Value" [ppCoin (Coin n), ppList pptriple triples, ppString "Bad " <> ppList ppPolicyID bad]
   where
-    (n, triples) = gettriples v
     pptriple (i, asset, num) = hsep [ppPolicyID i, ppAssetName asset, ppInteger num]
 
 ppPolicyID :: PolicyID crypto -> PDoc

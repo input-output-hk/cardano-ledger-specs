@@ -78,7 +78,7 @@ genChainState n ge =
             -- unimportant for now, we set the A part of the fee to 0
             maxMinFeeA = 0
           }
-      ge' = GenEnv (geKeySpace ge) (ScriptSpace [] Map.empty) cs
+      ge' = GenEnv (geKeySpace ge) (ScriptSpace [] [] Map.empty Map.empty) cs
    in fromRight (error "genChainState failed")
         <$> ( generate $
                 mkGenesisChainState ge' (IRC ())

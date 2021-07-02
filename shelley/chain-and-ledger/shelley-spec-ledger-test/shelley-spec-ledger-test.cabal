@@ -63,6 +63,7 @@ library
     Test.Shelley.Spec.Ledger.Generator.ScriptClass
     Test.Shelley.Spec.Ledger.Generator.ShelleyEraGen
     Test.Shelley.Spec.Ledger.Orphans
+    Test.Shelley.Spec.Ledger.Rules.ClassifyTraces
     Test.Shelley.Spec.Ledger.Serialisation.CDDLUtils
     Test.Shelley.Spec.Ledger.Serialisation.Generators
     Test.Shelley.Spec.Ledger.Serialisation.EraIndepGenerators
@@ -79,7 +80,6 @@ library
       Test.Shelley.Spec.Ledger.Address.CompactAddr
       Test.Shelley.Spec.Ledger.ByronTranslation
       Test.Shelley.Spec.Ledger.Examples.Federation
-      Test.Shelley.Spec.Ledger.Rules.ClassifyTraces
       Test.Shelley.Spec.Ledger.Rules.TestDeleg
       Test.Shelley.Spec.Ledger.Rules.TestPool
       Test.Shelley.Spec.Ledger.Rules.TestPoolreap
@@ -103,6 +103,7 @@ library
     data-default-class,
     directory,
     generic-random,
+    hashable,
     hedgehog-quickcheck,
     hedgehog >= 1.0.4,
     iproute,

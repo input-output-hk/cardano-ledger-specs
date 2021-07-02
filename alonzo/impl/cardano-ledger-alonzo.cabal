@@ -66,6 +66,7 @@ library
     plutus-ledger-api,
     plutus-tx,
     plutus-core,
+    prettyprinter,
     serialise,
     shelley-spec-ledger,
     small-steps,

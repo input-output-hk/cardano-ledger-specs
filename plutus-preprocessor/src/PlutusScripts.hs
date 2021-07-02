@@ -9,6 +9,9 @@ module PlutusScripts
     odddataDecl,
     oddRedeemerDecl,
     sumsTo10Decl,
+    evenRedeemerDecl2Args,
+    oddRedeemerDecl2Args,
+    redeemerIs10Decl2Args,
   ) where
 
 import qualified Plutus.V1.Ledger.Scripts as P
@@ -57,4 +60,26 @@ sumsTo10Decl :: Q [Dec]
 sumsTo10Decl =
   [d| sumsTo10' :: P.Data -> P.Data -> P.Data -> ()
       sumsTo10' (P.I m) (P.I n)_d3 = if (m P.+ n) P.== 10 then () else (P.error ())
+  |]
+
+-- ===========================
+-- 2 arg Plutus scripts, for use in non payment contexts
+
+
+oddRedeemerDecl2Args :: Q [Dec]
+oddRedeemerDecl2Args =
+  [d| oddRedeemer2' :: P.Data -> P.Data -> ()
+      oddRedeemer2' (P.I n)_d3 = if (P.modulo n 2) P.== 1 then () else (P.error ())
+  |]
+
+evenRedeemerDecl2Args :: Q [Dec]
+evenRedeemerDecl2Args =
+  [d| evenRedeemer2' :: P.Data -> P.Data -> ()
+      evenRedeemer2' (P.I n) _d3 = if (P.modulo n 2) P.== 0 then () else (P.error ())
+  |]
+
+redeemerIs10Decl2Args :: Q [Dec]
+redeemerIs10Decl2Args =
+  [d| redeemerIs102' :: P.Data -> P.Data -> ()
+      redeemerIs102' (P.I n) _d3 = if n P.== 10 then () else (P.error ())
   |]

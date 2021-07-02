@@ -50,7 +50,7 @@ import Cardano.Ledger.Era (Crypto, Era (..), ValidateScript (..))
 import Cardano.Ledger.Hashes (ScriptHash)
 import Cardano.Ledger.Keys (KeyHash, KeyRole (Witness))
 import Cardano.Ledger.Mary (MaryEra)
-import Cardano.Ledger.Mary.Value (policies)
+import Cardano.Ledger.Mary.Value (AssetName (..), PolicyID (..), Value, policies, valueFromList)
 import Cardano.Ledger.ShelleyMA.AuxiliaryData as Mary (pattern AuxiliaryData)
 import Cardano.Ledger.ShelleyMA.Timelocks (Timelock (..))
 import Cardano.Ledger.Tx (Tx (Tx))
@@ -58,6 +58,7 @@ import Cardano.Ledger.Val (adaOnly, (<+>), (<×>))
 import Cardano.Slotting.Slot (SlotNo (..))
 import Control.Iterate.SetAlgebra (eval, (◁))
 import Control.Monad (replicateM)
+import qualified Data.ByteString.Char8 as BS
 import Data.Hashable (Hashable (..))
 import qualified Data.List as List
 import Data.Map as Map
@@ -75,7 +76,15 @@ import Shelley.Spec.Ledger.PParams (Update)
 import Shelley.Spec.Ledger.TxBody (DCert, TxIn, Wdrl)
 import Shelley.Spec.Ledger.UTxO (UTxO (..))
 import Test.Cardano.Ledger.AllegraEraGen (genValidityInterval)
-import Test.Cardano.Ledger.Alonzo.PlutusScripts (evendata3, guessTheNumber3, odddata3)
+import Test.Cardano.Ledger.Alonzo.PlutusScripts
+  ( evenRedeemer2,
+    evendata3,
+    guessTheNumber3,
+    oddRedeemer2,
+    odddata3,
+    redeemerIs102,
+    sumsTo103,
+  )
 import Test.Cardano.Ledger.MaryEraGen (addTokens, genMint, maryGenesisValue, policyIndex)
 import Test.QuickCheck hiding ((><))
 import Test.Shelley.Spec.Ledger.ConcreteCryptoTypes (Mock)
@@ -83,7 +92,8 @@ import Test.Shelley.Spec.Ledger.Generator.Constants (Constants (..))
 import Test.Shelley.Spec.Ledger.Generator.Core
   ( GenEnv (..),
     ScriptInfo,
-    TwoPhaseInfo (..),
+    TwoPhase2ArgInfo (..),
+    TwoPhase3ArgInfo (..),
     findPlutus,
     genNatural,
     hashData,
@@ -92,8 +102,10 @@ import Test.Shelley.Spec.Ledger.Generator.EraGen (EraGen (..), MinGenTxout (..))
 import Test.Shelley.Spec.Ledger.Generator.ScriptClass (Quantifier (..), ScriptClass (..))
 import Test.Shelley.Spec.Ledger.Generator.Update (genM, genShelleyPParamsDelta)
 import qualified Test.Shelley.Spec.Ledger.Generator.Update as Shelley (genPParams)
-import Test.Shelley.Spec.Ledger.Generator.Utxo (encodedLen)
+import Test.Shelley.Spec.Ledger.Generator.Utxo (encodedLen, myDiscard)
 
+-- import Debug.Trace(trace)
+-- import Cardano.Ledger.Pretty(PrettyA(..))
 -- ============================================================
 
 isKeyHashAddr :: Addr crypto -> Bool
@@ -107,16 +119,36 @@ vKeyLocked txout =
   isKeyHashAddr (getField @"address" txout)
     && adaOnly (getField @"value" txout)
 
-phase2scripts :: forall c. Mock c => [TwoPhaseInfo (AlonzoEra c)]
-phase2scripts =
-  [ TwoPhaseInfo (alwaysSucceeds 3) (hashScript @(AlonzoEra c) (alwaysSucceeds 3)) (P.I 1) (P.I 1, bigMem, bigStep),
-    TwoPhaseInfo (alwaysSucceeds 3) (hashScript @(AlonzoEra c) (alwaysSucceeds 3)) (P.I 1) (P.I 1, bigMem, bigStep),
-    TwoPhaseInfo (alwaysSucceeds 3) (hashScript @(AlonzoEra c) (alwaysSucceeds 3)) (P.I 1) (P.I 1, bigMem, bigStep),
-    TwoPhaseInfo (alwaysSucceeds 3) (hashScript @(AlonzoEra c) (alwaysSucceeds 3)) (P.I 1) (P.I 1, bigMem, bigStep),
-    TwoPhaseInfo guessTheNumber3 (hashScript @(AlonzoEra c) guessTheNumber3) (P.I 9) (P.I 9, bigMem, bigStep),
-    TwoPhaseInfo evendata3 (hashScript @(AlonzoEra c) evendata3) (P.I 8) (P.I 8, bigMem, bigStep),
-    TwoPhaseInfo odddata3 (hashScript @(AlonzoEra c) odddata3) (P.I 9) (P.I 9, bigMem, bigStep)
+phase2scripts3Arg :: forall c. Mock c => [TwoPhase3ArgInfo (AlonzoEra c)]
+phase2scripts3Arg =
+  [ TwoPhase3ArgInfo (alwaysSucceeds 3) (hashScript @(AlonzoEra c) (alwaysSucceeds 3)) (P.I 1) (P.I 1, bigMem, bigStep),
+    TwoPhase3ArgInfo guessTheNumber3 (hashScript @(AlonzoEra c) guessTheNumber3) (P.I 9) (P.I 9, bigMem, bigStep),
+    TwoPhase3ArgInfo evendata3 (hashScript @(AlonzoEra c) evendata3) (P.I 8) (P.I 8, bigMem, bigStep),
+    TwoPhase3ArgInfo odddata3 (hashScript @(AlonzoEra c) odddata3) (P.I 9) (P.I 9, bigMem, bigStep),
+    TwoPhase3ArgInfo sumsTo103 (hashScript @(AlonzoEra c) sumsTo103) (P.I 1) (P.I 9, bigMem, bigStep)
   ]
+
+phase2scripts2Arg :: forall c. Mock c => [TwoPhase2ArgInfo (AlonzoEra c)]
+phase2scripts2Arg =
+  [ TwoPhase2ArgInfo (alwaysSucceeds 2) (hashScript @(AlonzoEra c) (alwaysSucceeds 2)) (P.I 1, bigMem, bigStep),
+    TwoPhase2ArgInfo oddRedeemer2 (hashScript @(AlonzoEra c) oddRedeemer2) (P.I 13, bigMem, bigStep),
+    TwoPhase2ArgInfo evenRedeemer2 (hashScript @(AlonzoEra c) evenRedeemer2) (P.I 14, bigMem, bigStep),
+    TwoPhase2ArgInfo redeemerIs102 (hashScript @(AlonzoEra c) redeemerIs102) (P.I 10, bigMem, bigStep)
+  ]
+
+genPlutus2Arg :: Mock c => Gen (Maybe (TwoPhase2ArgInfo (AlonzoEra c)))
+genPlutus2Arg = frequency [(10, Just <$> elements phase2scripts2Arg), (90, pure Nothing)]
+
+-- | Gen a Mint value in the Alonzo Era, with a 10% chance that it includes an AlonzoScript
+genAlonzoMint :: Mock c => Value c -> Gen (Value c, [Alonzo.Script (AlonzoEra c)])
+genAlonzoMint startvalue = do
+  ans <- genPlutus2Arg
+  case ans of
+    Nothing -> pure (startvalue, [])
+    Just (TwoPhase2ArgInfo script shash _) -> do
+      count <- chooseEnum (1, 10)
+      let assetname = AssetName . BS.pack $ "purple"
+      pure (((valueFromList 0 [(PolicyID shash, assetname, count)]) <> startvalue), [script])
 
 -- ================================================================
 
@@ -204,11 +236,12 @@ genAlonzoTxBody _genenv utxo pparams currentslot input txOuts certs wdrls fee up
   _low <- genM (genSlotAfter currentslot)
   _high <- genM (genSlotAfter (currentslot + 50))
   netid <- genM $ pure Testnet -- frequency [(2, pure Mainnet), (1, pure Testnet)]
-  minted <- genMint
+  startvalue <- genMint
+  (minted, plutusScripts) <- genAlonzoMint startvalue
   let (minted2, txouts2) = case addTokens (Proxy @(AlonzoEra c)) mempty pparams minted txOuts of
         Nothing -> (mempty, txOuts)
         Just os -> (minted, os)
-      scriptsFromPolicies = List.map (\p -> (Map.!) policyIndex p) (Set.toList $ policies minted)
+      scriptsFromPolicies = List.map (\p -> (Map.!) policyIndex p) (Set.toList $ policies startvalue)
       txouts3 = fmap addMaybeDataHashToTxOut txouts2
   validityInterval <- genValidityInterval currentslot
   return
@@ -228,7 +261,7 @@ genAlonzoTxBody _genenv utxo pparams currentslot input txOuts certs wdrls fee up
         (hashWitnessPPData pparams (langsUsed @(AlonzoEra c) Map.empty) (Redeemers Map.empty) (TxDats Map.empty))
         auxDHash
         netid,
-      List.map TimelockScript scriptsFromPolicies
+      (List.map TimelockScript scriptsFromPolicies <> plutusScripts)
     )
 
 genSlotAfter :: SlotNo -> Gen SlotNo
@@ -288,7 +321,8 @@ instance HasField "totExunits" (Tx (AlonzoEra c)) ExUnits where
 instance Mock c => EraGen (AlonzoEra c) where
   genEraAuxiliaryData = genAux
   genGenesisValue = maryGenesisValue
-  genEraTwoPhaseScripts = phase2scripts
+  genEraTwoPhase3Arg = phase2scripts3Arg
+  genEraTwoPhase2Arg = phase2scripts2Arg
 
   genEraTxBody = genAlonzoTxBody
   updateEraTxBody utxo pp witnesses txb coinx txin txout = new
@@ -333,9 +367,11 @@ instance Mock c => EraGen (AlonzoEra c) where
           Just script ->
             if isNativeScript @(AlonzoEra c) script
               then ans -- Native scripts don't have redeemers
-              else case Map.lookup hash1 scriptinfo of -- It should be one of the known Plutus Scripts
-                Nothing -> ans
-                Just info -> addRedeemMap txbody info purpose ans -- Add it to the redeemer map
+              else case Map.lookup hash1 (fst scriptinfo) of -- It could be one of the known 3-Arg Plutus Scripts
+                Just info -> addRedeemMap txbody (getRedeemer3 info) purpose ans -- Add it to the redeemer map
+                Nothing -> case Map.lookup hash1 (snd scriptinfo) of -- It could be one of the known 2-Arg Plutus Scripts
+                  Just info -> addRedeemMap txbody (getRedeemer2 info) purpose ans -- Add it to the redeemer map
+                  Nothing -> ans
 
   unsafeApplyTx (Tx bod wit auxdata) = ValidatedTx bod wit (IsValidating True) auxdata
 
@@ -343,8 +379,8 @@ instance Mock c => EraGen (AlonzoEra c) where
 
   genEraScriptCost pp script =
     if isPlutusScript script
-      then case List.find (\info -> (getScript @(AlonzoEra c) info) == script) genEraTwoPhaseScripts of
-        Just (TwoPhaseInfo _script _hash inputdata (rdmr, mems, steps)) ->
+      then case List.find (\info -> (getScript3 @(AlonzoEra c) info) == script) genEraTwoPhase3Arg of
+        Just (TwoPhase3ArgInfo _script _hash inputdata (rdmr, mems, steps)) ->
           scriptfee (getField @"_prices" pp) (ExUnits mems steps)
             <+> storageCost 10 pp (rdmr, ExUnits mems steps) -- Extra 10 for the RdmrPtr
             <+> storageCost 32 pp inputdata -- Extra 32 for the hash
@@ -357,8 +393,8 @@ instance Mock c => EraGen (AlonzoEra c) where
         theFee = getField @"txfee" txb -- Coin supplied to pay fees
         minimumFee = minfee @(AlonzoEra c) pp tx
      in if (minimumFee <= theFee)
-          then pure tx
-          else discard
+          then (pure tx)
+          else myDiscard "MinFeee violation: genEraDne: AlonzoEraGem.hs"
 
   genEraTweakBlock pp txns =
     let txTotal, ppMax :: ExUnits
@@ -366,7 +402,7 @@ instance Mock c => EraGen (AlonzoEra c) where
         ppMax = getField @"_maxBlockExUnits" pp
      in if pointWiseExUnits (<=) txTotal ppMax
           then pure txns
-          else discard
+          else myDiscard "TotExUnits violation: genEraTweakBlock: AlonzoEraGem.hs"
 
 storageCost :: ToCBOR t => Integer -> (Alonzo.PParams era) -> t -> Coin
 storageCost extra pp x = (extra + encodedLen x) <×> Coin (fromIntegral (getField @"_minfeeA" pp))
@@ -374,11 +410,11 @@ storageCost extra pp x = (extra + encodedLen x) <×> Coin (fromIntegral (getFiel
 addRedeemMap ::
   forall c.
   TxBody (AlonzoEra c) ->
-  TwoPhaseInfo (AlonzoEra c) ->
+  (Plutus.Data, Word64, Word64) ->
   ScriptPurpose c ->
   Map RdmrPtr (Data (AlonzoEra c), ExUnits) ->
   Map RdmrPtr (Data (AlonzoEra c), ExUnits)
-addRedeemMap body1 (TwoPhaseInfo _ _ _ (dat, space, steps)) purpose ans =
+addRedeemMap body1 (dat, space, steps) purpose ans =
   case (purpose, rdptr @(AlonzoEra c) body1 purpose) of
     (Spending _, SJust ptr) -> Map.insert ptr (Data dat, ExUnits space steps) ans
     (Minting _, SJust ptr) -> Map.insert ptr (Data dat, ExUnits space steps) ans
@@ -387,12 +423,12 @@ addRedeemMap body1 (TwoPhaseInfo _ _ _ (dat, space, steps)) purpose ans =
     _ -> ans
 
 getDataMap :: forall era. Era era => ScriptInfo era -> Map (ScriptHash (Crypto era)) (Core.Script era) -> Map (DataHash (Crypto era)) (Data era)
-getDataMap scriptinfo scrips = Map.foldlWithKey' accum Map.empty scrips
+getDataMap (scriptinfo3, _) scrips = Map.foldlWithKey' accum Map.empty scrips
   where
     accum ans hsh _script =
-      case Map.lookup hsh scriptinfo of
+      case Map.lookup hsh scriptinfo3 of
         Nothing -> ans
-        Just (TwoPhaseInfo _script _hash dat _redeem) -> Map.insert (hashData @era dat) (Data dat) ans
+        Just (TwoPhase3ArgInfo _script _hash dat _redeem) -> Map.insert (hashData @era dat) (Data dat) ans
 
 instance Mock c => MinGenTxout (AlonzoEra c) where
   calcEraMinUTxO tout pp = (utxoEntrySize tout <×> getField @"_coinsPerUTxOWord" pp)
@@ -406,24 +442,24 @@ instance Mock c => MinGenTxout (AlonzoEra c) where
     pure (zipWith makeTxOut addrs values)
 
 -- | If an Address is script address, we can find a potential data hash for it from
---   genEraTwoPhaseScripts, which contains all known plutus scripts in the tests set.
+--   genEraTwoPhase3Arg, which contains all known 3 arg plutus scripts in the tests set.
 -- If the script has is not in that map, then its data hash is SNothing.
 dataFromAddr :: forall c. Mock c => Addr c -> StrictMaybe (DataHash c)
 dataFromAddr (Addr _network (ScriptHashObj shash) _stakeref) =
-  case List.find (\info -> shash == hashScript @(AlonzoEra c) (getScript @(AlonzoEra c) info)) genEraTwoPhaseScripts of
-    Just info -> SJust (hashData @(AlonzoEra c) (getData info))
+  case List.find (\info -> shash == hashScript @(AlonzoEra c) (getScript3 @(AlonzoEra c) info)) genEraTwoPhase3Arg of
+    Just info -> SJust (hashData @(AlonzoEra c) (getData3 info))
     Nothing -> SNothing
 dataFromAddr _ = SNothing
 
 -- | We can find the data associated with the data hashes in the TxOuts, since
---   genEraTwoPhaseScripts, which contains all known plutus scripts stores the data.
+--   genEraTwoPhase3Arg, which contains all known 3 arg plutus scripts stores the data.
 dataMapFromTxOut :: forall c. Mock c => [TxOut (AlonzoEra c)] -> TxDats (AlonzoEra c) -> TxDats (AlonzoEra c)
 dataMapFromTxOut txouts datahashmap = Prelude.foldl accum datahashmap txouts
   where
     accum !ans (TxOut _ _ SNothing) = ans
     accum !ans (TxOut _ _ (SJust dhash)) =
-      case List.find (\info -> hashData @(AlonzoEra c) (getData info) == dhash) (genEraTwoPhaseScripts @(AlonzoEra c)) of
-        Just info -> let TxDats' m = ans in TxDats (Map.insert dhash (Data (getData info)) m)
+      case List.find (\info -> hashData @(AlonzoEra c) (getData3 info) == dhash) (genEraTwoPhase3Arg @(AlonzoEra c)) of
+        Just info -> let TxDats' m = ans in TxDats (Map.insert dhash (Data (getData3 info)) m)
         Nothing -> ans
 
 addMaybeDataHashToTxOut :: Mock c => TxOut (AlonzoEra c) -> TxOut (AlonzoEra c)
