@@ -23,7 +23,6 @@ module Cardano.Ledger.Alonzo.PlutusScriptApi
 where
 
 import Cardano.Binary (FromCBOR (..), ToCBOR (..))
-import Cardano.Ledger.Address (Addr)
 import Cardano.Ledger.Alonzo.Data (getPlutusData)
 import Cardano.Ledger.Alonzo.Language (Language (..))
 import Cardano.Ledger.Alonzo.Scripts (CostModel, ExUnits (..))
@@ -264,7 +263,6 @@ scriptsNeeded ::
     HasField "inputs" (Core.TxBody era) (Set (TxIn (Crypto era))),
     HasField "wdrls" (Core.TxBody era) (Wdrl (Crypto era)),
     HasField "certs" (Core.TxBody era) (StrictSeq (DCert (Crypto era))),
-    HasField "address" (Core.TxOut era) (Addr (Crypto era)),
     HasField "body" tx (Core.TxBody era)
   ) =>
   UTxO era ->
@@ -289,8 +287,7 @@ scriptsNeededFromBody ::
   ( Era era,
     HasField "inputs" (Core.TxBody era) (Set (TxIn (Crypto era))),
     HasField "wdrls" (Core.TxBody era) (Wdrl (Crypto era)),
-    HasField "certs" (Core.TxBody era) (StrictSeq (DCert (Crypto era))),
-    HasField "address" (Core.TxOut era) (Addr (Crypto era))
+    HasField "certs" (Core.TxBody era) (StrictSeq (DCert (Crypto era)))
   ) =>
   UTxO era ->
   Core.TxBody era ->

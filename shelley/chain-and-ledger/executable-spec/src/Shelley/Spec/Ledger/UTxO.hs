@@ -327,8 +327,7 @@ scriptsNeeded ::
     HasField "body" tx (Core.TxBody era),
     HasField "certs" (Core.TxBody era) (StrictSeq (DCert (Crypto era))),
     HasField "wdrls" (Core.TxBody era) (Wdrl (Crypto era)),
-    HasField "inputs" (Core.TxBody era) (Set (TxIn (Crypto era))),
-    HasField "address" (Core.TxOut era) (Addr (Crypto era))
+    HasField "inputs" (Core.TxBody era) (Set (TxIn (Crypto era)))
   ) =>
   UTxO era ->
   tx ->

@@ -130,9 +130,9 @@ newEpochTransition ::
   TransitionRule (NEWEPOCH era)
 newEpochTransition = do
   TRC
-    ( _,
+    ( (),
       src@(NewEpochState (EpochNo eL) _ bcur es ru _pd),
-      e@(EpochNo e_)
+      epochno@(EpochNo e_)
       ) <-
     judgmentContext
   if e_ /= eL + 1
@@ -152,12 +152,12 @@ newEpochTransition = do
           pure $ applyRUpd ru' es
 
       es'' <- trans @(Core.EraRule "MIR" era) $ TRC ((), es', ())
-      es''' <- trans @(Core.EraRule "EPOCH" era) $ TRC ((), es'', e)
+      es''' <- trans @(Core.EraRule "EPOCH" era) $ TRC ((), es'', epochno)
       let EpochState _acnt ss _ls _pr _ _ = es'''
           pd' = calculatePoolDistr (_pstakeSet ss)
       pure $
         NewEpochState
-          e
+          epochno
           bcur
           (BlocksMade Map.empty)
           es'''

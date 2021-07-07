@@ -49,6 +49,7 @@ import Shelley.Spec.Ledger.API
     StrictMaybe (..),
   )
 import qualified Shelley.Spec.Ledger.API as API
+import Shelley.Spec.Ledger.EpochBoundary (translateSnapShots)
 import qualified Shelley.Spec.Ledger.PParams as Shelley
 import qualified Shelley.Spec.Ledger.TxBody as Shelley
 
@@ -153,7 +154,7 @@ instance Crypto c => TranslateEra (AlonzoEra c) EpochState where
     return
       EpochState
         { esAccountState = esAccountState es,
-          esSnapshots = esSnapshots es,
+          esSnapshots = translateSnapShots (esSnapshots es),
           esLState = translateEra' ctxt $ esLState es,
           esPrevPp = translatePParams ctxt $ esPrevPp es,
           esPp = translatePParams ctxt $ esPp es,
