@@ -30,18 +30,18 @@
     & \fun{getCoin} \in \TxOut \to \Coin \\
     & \fun{getCoin}~{(\wcard,~\var{out})} ~=~\fun{coin}~\var{out}
     \nextdef
-    & \fun{ubalance} \in \UTxO \to \hldiff{\Value} \\
+    & \fun{ubalance} \in \UTxO \to \hldiff{\ValClass} \\
     & \fun{ubalance} ~ utxo = \hldiff{\sum_{\wcard\mapsto\var{u}\in~\var{utxo}} \fun{getValue}~\var{u}}
   \end{align*}
   %
   \emph{Produced and Consumed Calculations}
   \begin{align*}
-    & \fun{consumed} \in \PParams \to \UTxO \to \TxBody \to \hldiff{\Value} \\
+    & \fun{consumed} \in \PParams \to \UTxO \to \TxBody \to \hldiff{\ValClass} \\
     & \consumed{pp}{utxo}{txb} = \\
     & ~~\ubalance{(\txins{txb} \restrictdom \var{utxo})} ~+~ \hldiff{\fun{mint}~\var{txb}} \\
     &~~+~\hldiff{\fun{inject}}(\fun{wbalance}~(\fun{txwdrls}~{txb})~+~ \keyRefunds{pp}{txb})
     \nextdef
-    & \fun{produced} \in \PParams \to \StakePools \to \TxBody \to \hldiff{\Value} \\
+    & \fun{produced} \in \PParams \to \StakePools \to \TxBody \to \hldiff{\ValClass} \\
     & \fun{produced}~\var{pp}~\var{stpools}~\var{txb} = \\
     &~~\ubalance{(\fun{outs}~{txb})} \\
     &~~+ \hldiff{\fun{inject}}(\txfee{txb} + \totalDeposits{pp}{stpools}{(\txcerts{txb})})
@@ -73,7 +73,7 @@ UTxO transition system with multi-assets:
   \item The $\fun{ubalance}$ function calculates the sum total in a given UTxO.
 
   \item The $\fun{consumed}$ and $\fun{produced}$ calculations are similar to their Shelley
-    counterparts, with the following changes: 1) They return elements of $\Value$, which
+    counterparts, with the following changes: 1) They return terms of $\ValClass$, which
     the administrative fields of type $\Coin$ have to be converted to, via $\fun{inject}$.
     2) $\fun{consumed}$ also contains the $\fun{mint}$ field of the transaction.
     This is explained below.
@@ -121,19 +121,21 @@ of this rule as compared to the original Shelley UTXO rule:
   \item In the preservation of value calculation (which looks the same as in
   Shelley), the value in the $\fun{mint}$ field is taken into account.
 
-  \item The transaction is not minting any Ada.
+  \item The transaction is not minting any Ada. This condition, in the Allegra
+  era, ensures that no assets can ever be minted (since Ada is the only existing
+  asset).
 
-  \item The $\Value$ in each output is constrained from below by a
-    $\Value$ that contains some amount of ada and no other tokens.
-    The amount of ada that is contained in the constraint $\Value$ (and
-    hence the $\Value$ in the output itself must contain at least as much) depends on the
+  \item The $\ValClass$ term in each output is constrained from below by a
+    $\ValClass$ term that contains some amount of ada and no other tokens.
+    The amount of ada that is contained in the constraint $\ValClass$ term (and
+    hence the $\ValClass$ term in the output itself must contain at least as much) depends on the
     size of the output. To get the minimum ada amount, the size of the output is multiplied by
     the function $\var{adaPerUTxOWord}$ applied to protocol parameters
     (see Section~\ref{sec:value-size} for the function definition).
     Note that this check implies that no quantity of any token appearing in that output can be
     negative.
 
-    \item The serialized size of the $\Value$ in each output is no greater than $\mathsf{MaxValSize}$
+    \item The serialized size of the $\ValClass$ term in each output is no greater than $\mathsf{MaxValSize}$
     (specified in Section~\ref{sec:value-size}).
     This ensures that each individual output is never so large that any transaction carrying all the
     witness data (eg. large scripts, etc.) necessary for spending such an output will exceed the transaction size limit.
@@ -142,7 +144,7 @@ of this rule as compared to the original Shelley UTXO rule:
 
 Note that updating the $\UTxO$ with the inputs and the outputs of the transaction
 looks the same as in the Shelley rule. There is a type-level difference however, as
-the outputs of a transaction contain a $\Value$ term, rather than
+the outputs of a transaction contain a $\ValClass$ term, rather than
 $\Coin$.
 
 
@@ -236,7 +238,7 @@ $\Coin$.
     \cup & ~~\{ \fun{stakeCred_{r}}~\var{a} \mid a \in \dom (\AddrRWDScr
            \restrictdom \fun{txwdrls}~\var{txb}) \} \\
       \cup & ~~(\AddrScr \cap \fun{certWitsNeeded}~{txb}) \\
-      \cup & ~~\hldiff{\supp~(\fun{mint}~\var{txb})} \\
+      \cup & ~~\hldiff{\fun{minted}~\var{txb}} \\
     & \where \\
     & ~~~~~~~ \var{txb}~=~\txbody{tx}
   \end{align*}
@@ -246,7 +248,10 @@ $\Coin$.
 
 Figure~\ref{fig:functions-witnesses} contains the changed definition
 of the function $\fun{scriptsNeeded}$, which also collects the scripts
-necessary for minting.
+necessary for minting. See Section \ref{sec:transactions} for the definitions of
+$\fun{minted}$, which are specific to the exact type used to instantiate
+$\ValClass$. Recall that in Allegra, no assets can ever be minted, so there are no scripts to run that
+validate minting.
 
-The witnessing rule UTXOW only needs a minor change for verifying the meta data hash,
+The witnessing rule UTXOW only needs a minor change for verifying the metadata hash,
 which is replacing the condition $\var{md} = \Nothing$ with $\var{md} = (\emptyset, \Nothing)$.

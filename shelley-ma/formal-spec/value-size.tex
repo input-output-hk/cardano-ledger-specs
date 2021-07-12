@@ -3,9 +3,10 @@
 
 In Shelley, the protocol parameter $\var{minUTxOValue}$ is used to
 disincentivize attacking nodes by putting many small outputs on the
-UTxO, permanently blocking memory. Because members of the $\Value$
-type can be arbitrary large, the ledger requires a $\UTxO$ entry to
-contain a minimum amount of Ada, proportional to its size.
+UTxO, permanently blocking memory. In the ShelleyMA eras
+and onwards, the $\ValClass$ type replaces $\Coin$ in UTxO map. $\ValClass$ terms
+can be arbitrarily large, so the ledger requires each $\UTxO$ entry to
+contain a minimum amount of Ada, proportional to its size. T
 
 There is also another $\Value$ size consideration with respect to spendability
 of an output. The restriction on the total serialized size of the transaction (set

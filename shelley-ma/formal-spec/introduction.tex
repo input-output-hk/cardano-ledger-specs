@@ -1,12 +1,69 @@
 \section{Introduction}
 
-The focus of this document is to give a description of the changes
-required to support multi-assets on the Shelley ledger as described in
-\cite{utxo_ma}. These multi-assets are implemented via token bundles,
-given by a type called $\Value$, which replace the type $\Coin$ of the
-Shelley ledger in many (but not all) cases.
+This document gives a specification of the changes
+required to implement a both an Allegra-era and a Mary-era ledger. These ledgers share
+a specification (and can share an implementation), with the exception of
+a difference in one particular type. We abstract over this type and several
+functions specific to it, which allows us to write a single spec for both versions of the
+ledger, to which we refer as a \emph{ShelleyMA ledger spec}.
 
 All aspects of the ledger not given in this document are as specified
-in the Shelley ledger design and implementation~\cite{shelley_spec},
-but if they depend on something that is changed in this version of the
-ledger they must use the definitions from this document.
+in the Shelley ledger design and implementation~\cite{shelley_spec}.
+Only additions and replacements of definitions of Shelley types, functions, rules, and transitions
+are given here. Replacements are always given the same name as the
+original definition in the Shelley spec, eg. the $\mathsf{UTXO}$ rule in the
+Shelley spec is replaced with the $\mathsf{UTXO}$ rule given here.
+
+\subsection{ShelleyMA, Allegra and Mary Eras}
+
+The additional functionality that is introduced in the Allegra and Mary eras
+is as follows :
+
+\begin{itemize}
+  \item \emph{Allegra} : Timelock scripts replace multi-signature scripts as the native
+  ledger-iterpreted script type. This type of script, in addition to the
+  clauses of the m-of-n multi-signature language, has constructors that
+  allow users to constrain the upper and lower slots of the validity of a
+  clause of the script. For example, one may specify that up to a given slot $s$,
+  either key $k$ or $k'$ can sign the transaction for the script to be valid,
+  whereas from $s$ onwards, only $k$'s signature can make the script valid.
+
+  \item \emph{Mary} : Multi-asset support is added to the Allegra ledger, ie.
+  to the Shelley ledger with timelock scripts. This includes changes to
+  ledger accounting to accommodate multiple types of tokens, as well as
+  support for minting and burning of user-defined tokens. This approach
+  taken here was described initially in \cite{utxo_ma}.
+\end{itemize}
+
+Adding both timelock script and multi-asset support is done in a single specification
+of the ShelleyMA ledger, as the transition rules are exactly the same for both
+Mary and Allegra. The difference between the two is that all accounting is
+done in terms of lovelace, ie. $\Coin$, in the Allegra era, whereas the Mary era
+replaces the $\Coin$ type with a type the terms of which are bundles of arbitrary assets
+(user-defined ones, as well as lovelace), which we call $\Value$.
+
+In this specification, we represent all the places where the $\Coin$ type is used in Allegra,
+and the $\Value$ type in Mary, as $\ValClass$. This is not itself a type, but an
+abstraction representing any type that has certain functions defined on its terms,
+such as addition of two terms,
+a size function, etc. (see Section \ref{sec:value} for details). We say that we
+\emph{instantiate} $\ValClass$ with a specific type (eg. $\Coin$) when we interpretet all
+uses of $\ValClass$ in the spec as replaced by the chosen type, and all the functions
+on abstract terms of $\ValClass$ as the versions specific to the type. For example,
+when we instantiate $\ValClass$ with $\Coin$, we specify that
+addition of two terms is the usual addition of two $\Coin$ terms, and use
+the $\Coin$ addition anywhere $\ValClass$ terms are added in the spec.
+
+Introducing the $\ValClass$ abstraction (including the required
+functions)
+\begin{itemize}
+  \item makes this document is a specification for Allegra when $\ValClass$
+  is instantiated to $\Coin$, and therefore transitions rules invoke the $\Coin$-specific functions
+  defining which is required for instantiating $\ValClass$, and
+  \item makes it a specification for Mary when $\ValClass$
+  is instantiated to $\Value$, together with the $\Value$-specific functions required by $\ValClass$.
+\end{itemize}
+
+Note that this spec is for two distinct eras, but we give only one translations, which is
+from Shelley to Mary, see Section \ref{sec:chain}. This is because no changes to
+chain or ledger types are required for Allegra.

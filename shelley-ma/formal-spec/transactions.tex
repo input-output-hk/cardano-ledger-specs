@@ -13,7 +13,7 @@
   %
   \begin{equation*}
     \begin{array}{r@{~\in~}l@{\qquad=\qquad}lr}
-      \var{txout} & \TxOut & \Addr \times \hldiff{\Value} \\
+      \var{txout} & \TxOut & \Addr \times \hldiff{\ValClass} \\
 %      & \text{tx outputs}
       \var{s} & \Script & \hldiff{\ScriptNI \uniondistinct \Timelock}
 %      & \text{scripts}
@@ -29,7 +29,7 @@
       & \powerset{\TxIn} & \fun{txinputs}& \text{inputs}\\
       &\times ~(\Ix \mapsto \TxOut) & \fun{txouts}& \text{outputs}\\
       & \times~ \seqof{\DCert} & \fun{txcerts}& \text{certificates}\\
-       & \times ~\hldiff{\Value}  & \hldiff{\fun{mint}} &\text{value minted}\\
+       & \times ~\hldiff{\ValClass}  & \hldiff{\fun{mint}} &\text{value minted}\\
        & \times ~\Coin & \fun{txfee} &\text{non-script fee}\\
        & \times ~\hldiff{\Slot^? \times \Slot^?} & \hldiff{\fun{txvldt}} & \text{validity interval}\\
        & \times~ \Wdrl  & \fun{txwdrls} &\text{reward withdrawals}\\
@@ -58,7 +58,7 @@
   \emph{Accessor Functions}
   \begin{equation*}
     \begin{array}{r@{~\in~}lr}
-      \fun{getValue} & \TxOut \to \Value & \text{output value} \\
+      \fun{getValue} & \TxOut \to \ValClass & \text{output value} \\
       \fun{getAddr} & \TxOut \to \Addr & \text{output address}
     \end{array}
   \end{equation*}
@@ -69,17 +69,24 @@
 \section{Transactions}
 \label{sec:transactions}
 
-This section describes the changes that are necessary to the
-transaction structure to support native multi-asset (MA) functionality in
-Cardano.
+This section describes the changes that are made to the
+transaction structure to support both timelock script and native multi-asset (MA)
+functionality in the Cardano ledger.
 
 \subsection*{New Output Type}
 
-A key change needed to introduce MA functionality is changing the type of
+A key change needed to introduce MA functionality in the Mary era is changing the type of
 the transaction and UTxO outputs to contain multi-asset values to accommodate
 transacting with these types of assets natively, using the same ledger accounting
-infrastructure as is used for Ada. That is,
-$\TxOut$ now contains a $\Value$ rather than a $\Coin$.
+scheme as is used for Ada. We set up the infrastructure for this
+change in transition system update common to both Allegra and Mary, ie. ShelleyMA. That is,
+$\TxOut$ now contains a term that is a member of the $\ValClass$ type (which
+could be a $\Coin$, $\Value$, or another type, see Section \ref{sec:coin-ma}),
+rather than only $\Coin$.
+
+In the Allegra era, $\ValClass$ is instantiated with $\Coin$, so there is no
+multi-asset support in the UTxO or the transactions. In the Mary era, it
+is changed to $\Value$ in order to add multi-asset support.
 
 \subsection*{New Script Type}
 
@@ -102,9 +109,9 @@ spec, as
 
 \subsection*{The Mint Field}
 
-The body of a transaction with multi-asset support contains one additional
+The body of a transaction in the ShelleyMA era contains one additional
 field, the $\fun{mint}$ field.
-The $\fun{mint}$ field is a term of type $\Value$, which contains
+The $\fun{mint}$ field is a term of type $\ValClass$, which contains
 tokens the transaction is putting into or taking out of
 circulation. Here, by "circulation", we mean specifically "the UTxO on the
 ledger". Since the administrative fields cannot contain tokens other than Ada,
@@ -115,11 +122,48 @@ Putting tokens into circulation is done with positive values in the $\Quantity$
 fields $\fun{mint}$ field, and taking tokens out of circulation can be done
 with negative quantities.
 
-A transaction cannot simply mint arbitrary tokens. Restrictions on
-Multi-Asset tokens are imposed, for each asset with ID $\var{pid}$, by a script
-with the hash $\var{pid}$. Whether a given transaction adheres to the restrictions
-prescribed by its script is verified as part of the processing of the transaction.
+A transaction cannot simply mint arbitrary tokens. In the Mary era, restrictions on
+multi-asset tokens are imposed, for each asset with ID $\var{pid}$, by a script
+with the hash $\var{pid}$. Whether a minting transaction adheres to the restrictions
+prescribed by preimage script is verified as part of the processing of the transaction.
 The minting mechanism is detailed in Section~\ref{sec:utxo}.
+
+Note that the $\fun{mint}$ field exists in both Allegra and Mary eras,
+but can only be used in the Mary era, when multi-assets are introduced.
+In Figure \ref{fig:minted} we give two versions of a function $\fun{minted}$,
+which is used to inspect the $\fun{mint}$ field and return the set of hashes
+of scripts that must be run to validate the minting of the tokens therein :
+
+\begin{itemize}
+  \item For the Allegra version of the function, which operates on $\Coin$ as the
+  type with which $\ValClass$ is instantiated, no scripts need to be run
+  to validate minting, since no minting of Ada is ever allowed.
+
+  \item For the Mary version, the set of $\fun{PolicyID}$s of the
+  assets in the $\Value$ term of the $\fun{mint}$ field is returned.
+\end{itemize}
+
+\begin{figure*}[t!]
+  \emph{ShelleyMA Abstract $\fun{minted}$ Field Type}
+  %
+  \begin{align*}
+    \fun{minted}~\in& \TxBody~\to~\powerset{ScriptHash}
+  \end{align*}
+  %
+  \emph{Allegra Instance}
+  %
+  \begin{align*}
+    \fun{minted}~\wcard~=& \emptyset
+  \end{align*}
+  %
+  \emph{Mary Instance}
+  %
+  \begin{align*}
+    \fun{minted}~\var{txb}~=& \supp~(\fun{mint}~{txb})
+  \end{align*}
+  \caption{$\fun{minted}$ Field in ShelleyMA, Allegra, and Mary}
+  \label{fig:minted}
+\end{figure*}
 
 \subsection*{Transaction Body}
 
@@ -127,7 +171,7 @@ The following changes were made to $\TxBody$:
 
 \begin{itemize}
   \item a change in the type of $\TxOut$ --- instead of
-$\Coin$, the transaction outputs now have type $\Value$.
+$\Coin$, the transaction outputs now have type $\ValClass$.
   \item the addition of the $\fun{mint}$ field to the transaction body
   \item the time-to-live slot number (which had the accessor $\fun{txttl}$),
   has been replaced with a validity interval with accessor $\fun{txvldt}$,

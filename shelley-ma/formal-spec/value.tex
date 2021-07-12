@@ -1,8 +1,13 @@
 \section{Coin and Multi-Asset Tokens}
 \label{sec:coin-ma}
 
+This ShelleyMA specification allows us to have a single version of a ledger
+spec for both Allegra and Mary eras because 
+
 This section describes the type $\Value$, the operations required on
-it, and its relation to $\Coin$.
+it, and its relation to $\Coin$. It also explains how this specification
+captures both the Allegra and the Mary eras in a single set of definitions,
+with the crucial difference outlined here.
 
 When multi-asset support on the ledger is introduced, Ada is still expected to be
 the most common type of token on the ledger.
@@ -10,6 +15,42 @@ The $\Coin$ type is used to represent an amount of Ada.
 It is the only
 type of token that can be used for all non-UTxO ledger accounting, including deposits,
 fees, rewards, treasury, and the proof of stake protocol.
+
+Val t
+where
+-- | the value with nothing in it
+zero :: t
+zero = mempty
+
+-- | add two value
+(<+>) :: t -> t -> t
+x <+> y = x <> y
+
+-- | scale a value by an Integral constant
+(<×>) :: Integral i => i -> t -> t
+
+-- | subtract two values
+(<->) :: t -> t -> t
+x <-> y = x <+> ((-1 :: Integer) <×> y)
+
+-- | Is the argument zero?
+isZero :: t -> Bool
+isZero t = t == mempty
+
+-- | Get the ADA present in the value (since ADA is our "blessed" currency)
+coin :: t -> Coin
+
+-- | Create a value containing only this amount of ADA
+inject :: Coin -> t
+
+-- | modify the blessed Coin part of t
+modifyCoin :: (Coin -> Coin) -> t -> t
+
+size :: t -> Integer -- compute size of Val instance
+
+-- | used to compare values pointwise. Rather than using: (v1 <= v2) use: pointwise (<=) v1 v2
+-- | If a quantity is stored in only one of 'v1' or 'v2', we use 0 for the missing quantity.
+pointwise :: (Integer -> Integer -> Bool) -> t -> t -> Bool
 
 \begin{figure*}[t!]
   \emph{Abstract Types}

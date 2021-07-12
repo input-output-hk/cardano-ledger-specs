@@ -51,8 +51,18 @@
 \newcommand{\ChainState}{\type{ChainState}}
 \newcommand{\ChainSig}{\type{ChainSig}}
 
+No changes to translate data between old and new types within the ledger or chain
+state are required to transition from the
+Shelley era to the Allegra era. Allegra changes are to the rules for
+validating a new type of script, so we do not give a translation function here.
+Note that while the multi-signature scripts are deprecated in the Allegra era,
+the timelock scripts are intended to be encoding-compatible with the MSig ones.
+That means that
+For this reason,
+
 In Figure~\ref{fig:functions:to-ma}, we give the functions that will be used
-to transition from a Shelley chain state into a chain state that provides multi-asset support.
+to transition from an Allegra chain state into a chain state that provides multi-asset support
+(the Mary era).
 The only part of the state that is affected by the transition is the UTxO. For ease of
 reading, we keep the function $\fun{updateChainStateUTxO}$ abstract, which simply transforms the
 UTxO that is nested deeply inside the chain state with the provided function.
@@ -65,20 +75,20 @@ UTxO that is nested deeply inside the chain state with the provided function.
   \emph{Abstract function}
   %
   \begin{align*}
-      & \fun{updateChainStateUTxO} \in (\ShelleyUTxO \to \UTxO) \to \ShelleyChainState \to \ChainState \\
-      & \text{update the UTxO in a Shelley chain state}
+      & \fun{translateEra} \in (\ShelleyUTxO \to \UTxO) \to \ShelleyChainState \to \ChainState \\
+      & \text{update the UTxO in a chain state}
   \end{align*}
   %
   \emph{Chain state update}
   %
   \begin{align*}
-      & \fun{mkUTxO} ~\in~ \ShelleyUTxO  \to \UTxO  \\
+      & \fun{translateEra} ~\in~ \ShelleyUTxO  \to \UTxO  \\
       & \fun{mkUTxO}~\var{utxo} ~=~ \{~ \var{txin} \mapsto (a,\fun{inject}~c) ~\vert~
       \var{txin} \mapsto \var{(a,c)}\in ~\var{utxo}~\}
       \nextdef
       & \fun{toMA} \in ~ \ShelleyChainState \to \ChainState \\
       & \fun{toMA}~cs = \fun{updateChainStateUTxO}~\fun{mkUTxO}
   \end{align*}
-  \caption{Shelley to Multi-Asset Chain State Transtition}
+  \caption{Allegra to Multi-Asset Chain State Transtition}
   \label{fig:functions:to-ma}
 \end{figure}
