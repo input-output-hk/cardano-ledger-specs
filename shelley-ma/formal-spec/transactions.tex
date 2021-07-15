@@ -4,7 +4,6 @@
   %
   \begin{equation*}
     \begin{array}{r@{~\in~}l@{\qquad=\qquad}lr}
-      \var{s_{v1}} & \ScriptNI & \ScriptMSig \\
       \var{s_{v2}} & \Timelock & \text{extended script language}
     \end{array}
   \end{equation*}
@@ -15,7 +14,7 @@
     \begin{array}{r@{~\in~}l@{\qquad=\qquad}lr}
       \var{txout} & \TxOut & \Addr \times \hldiff{\ValClass} \\
 %      & \text{tx outputs}
-      \var{s} & \Script & \hldiff{\ScriptNI \uniondistinct \Timelock}
+      \var{s} & \Script & \hldiff{\Timelock}
 %      & \text{scripts}
       \\
     \end{array}
@@ -92,12 +91,10 @@ is changed to $\Value$ in order to add multi-asset support.
 
 The multi-signature scripting language has been renamed to $\ScriptNI$ and
 the type $\Script$ has been extended to include a new scripting language,
-$\Timelock$. The two types of scripts which make up the $\Script$ type are both
-native, meaning
-that they are evaluated by the ledger directly. We specify the evaluation
-function for the additional script type in section~\ref{sec:timelock-lang}.
+$\Timelock$. We specify the evaluation
+function for the new script type in section~\ref{sec:timelock-lang}.
 
-Both types of scripts can be used for the same purposes, which means, for this
+The new type of scripts can be used for all the same purposes, which means, for this
 spec, as
 
 \begin{itemize}
@@ -147,19 +144,19 @@ of scripts that must be run to validate the minting of the tokens therein :
   \emph{ShelleyMA Abstract $\fun{minted}$ Field Type}
   %
   \begin{align*}
-    \fun{minted}~\in& \TxBody~\to~\powerset{ScriptHash}
+    \fun{minted}~\in&~ \TxBody~\to~\powerset{ScriptHash}
   \end{align*}
   %
   \emph{Allegra Instance}
   %
   \begin{align*}
-    \fun{minted}~\wcard~=& \emptyset
+    \fun{minted}~\wcard~=&~ \emptyset
   \end{align*}
   %
   \emph{Mary Instance}
   %
   \begin{align*}
-    \fun{minted}~\var{txb}~=& \supp~(\fun{mint}~{txb})
+    \fun{minted}~\var{txb}~=&~ \fun{pids}~(\fun{mint}~{txb})
   \end{align*}
   \caption{$\fun{minted}$ Field in ShelleyMA, Allegra, and Mary}
   \label{fig:minted}

@@ -83,8 +83,7 @@ UTxO transition system with multi-assets:
 What does it mean to preserve the value of non-Ada tokens, since they
 are put in and taken out of circulation by the users themselves?
 
-For the following discussion, we focus on a single arbitrary
-$\var{pid}$ that is not $\mathsf{adaPolicy}$. If a transaction $\var{tx}$
+If a transaction $\var{tx}$
 does not mint any tokens with policy ID $\var{pid}$, the preservation
 of value reduces to an equation that the sum of inputs and the sum of
 outputs are equal, which is exactly the same condition as for Shelley,
@@ -172,7 +171,7 @@ $\Coin$.
       \\
       ~
       \\
-      \hldiff{\mathsf{adaPolicy}~\notin \supp{\fun{mint}~txb}} \\
+      \hldiff{\fun{coin}~(\fun{mint}~txb)~=~0} \\
       ~\\
       \hldiff{\forall txout \in \txouts{txb},} \\
       \hldiff{\fun{getValue}~txout \geq} \\
