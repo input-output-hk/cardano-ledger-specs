@@ -2,67 +2,133 @@
 \label{sec:coin-ma}
 
 This ShelleyMA specification allows us to have a single version of a ledger
-spec for both Allegra and Mary eras because 
+spec for both Allegra and Mary eras because we introduce an abstract type,
+$\ValClass$, that allows us to swap out the representation of ledger assets that
+are just Ada (ie. $\Coin$) for a type that represents multiple assets in a
+single term (eg. $\Value$), as well as swap out the type-specific functions
+used in the ledger rules and required by $\ValClass$ (see Figure \ref{fig:valclass}).
+We do so by instantiating $\ValClass$ to either one of the types. Note that
+it can, in theory, be instantiated to any other type on which we can meaningfully
+define the required functions (addition, size, etc.).
 
-This section describes the type $\Value$, the operations required on
-it, and its relation to $\Coin$. It also explains how this specification
-captures both the Allegra and the Mary eras in a single set of definitions,
-with the crucial difference outlined here.
+\subsection{$\ValClass$}
 
-When multi-asset support on the ledger is introduced, Ada is still expected to be
-the most common type of token on the ledger.
-The $\Coin$ type is used to represent an amount of Ada.
-It is the only
-type of token that can be used for all non-UTxO ledger accounting, including deposits,
-fees, rewards, treasury, and the proof of stake protocol.
+$\ValClass$ is intuitively used as a placeholder for any type that can be used
+to represent (inside a transaction or in the ledger UTxO) quantities of a single asset or several different assets.
+Figure \ref{fig:valclass} gives names and types of functions in which $\ValClass$ is either
+an argument or the output type, and so they cannot be defined without assigning
+the abstract $\ValClass$ a specific type. Because these functions are used in the
+Allegra and Mary transition rules, to define the two concrete ledger models,
+we must not only pick a type with which to instantiate the $\ValClass$ abstraction,
+but also give concrete definitions to the associated functions.
 
-Val t
-where
--- | the value with nothing in it
-zero :: t
-zero = mempty
 
--- | add two value
-(<+>) :: t -> t -> t
-x <+> y = x <> y
-
--- | scale a value by an Integral constant
-(<×>) :: Integral i => i -> t -> t
-
--- | subtract two values
-(<->) :: t -> t -> t
-x <-> y = x <+> ((-1 :: Integer) <×> y)
-
--- | Is the argument zero?
-isZero :: t -> Bool
-isZero t = t == mempty
-
--- | Get the ADA present in the value (since ADA is our "blessed" currency)
-coin :: t -> Coin
-
--- | Create a value containing only this amount of ADA
-inject :: Coin -> t
-
--- | modify the blessed Coin part of t
-modifyCoin :: (Coin -> Coin) -> t -> t
-
-size :: t -> Integer -- compute size of Val instance
-
--- | used to compare values pointwise. Rather than using: (v1 <= v2) use: pointwise (<=) v1 v2
--- | If a quantity is stored in only one of 'v1' or 'v2', we use 0 for the missing quantity.
-pointwise :: (Integer -> Integer -> Bool) -> t -> t -> Bool
-
-\begin{figure*}[t!]
-  \emph{Abstract Types}
+%%
+%% Figure ValClass and its Functions
+%%
+\begin{figure}[htb]
+  \emph{Helper function}
   %
   \begin{align*}
-    \var{aname} \in& ~\AssetName & \text{Asset Names}
+    \mathsf{ValType} &\in \ValClass  \\
+    \text{Abstract type of asset-representing terms}
   \end{align*}
   %
+  \emph{Function definitions required for $\ValClass$ instantiation}
+  %
+  \begin{align*}
+      & \mathsf{ValType} &\in \ValClass & \text{Arbitrary type instance} \\~\\
+      %
+      & \fun{zero} &\in \mathsf{ValType} \\
+      & \text{Additive identity of $\mathsf{ValType}$}\\~\\
+      %
+      & (+) &\in \mathsf{ValType} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & \text{Addition on $\mathsf{ValType}$}\\~\\
+      %
+      & (*) &\in \mathsf{Integer} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & \text{Scale $\mathsf{ValType}$ value by integral constant}\\~\\
+      %
+      & (-) &\in \mathsf{ValType} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & v_1~-~v_2) &= v_1~+~((-1)~*~v_2)\\
+      & \text{Subtraction on $\mathsf{ValType}$}\\~\\
+      %
+      & \fun{isZero} &\in \mathsf{ValType} \to \Bool\\
+      & \text{Is a given $\mathsf{ValType}$ term the additive identity?}\\~\\
+      %
+      & \fun{coin} &\in \mathsf{ValType} \to \Coin\\
+      & \text{Return the Ada contained in a $\mathsf{ValType}$ term}\\~\\
+      %
+      & \fun{inject} &\in \Coin \to \mathsf{ValType}\\
+      & \text{Create a $\mathsf{ValType}$ term containing only this amount of Ada}\\~\\
+      %
+      & \fun{modifyCoin} &\in (\Coin \to \Coin) \to (\mathsf{ValType} \to \mathsf{ValType})\\
+      & \text{Modify the Ada part of $\mathsf{ValType}$}\\~\\
+      %
+      & \fun{size} &\in \mathsf{ValType} \to \MemoryEstimate\\
+      & \text{Return the size in words of a $\mathsf{ValType}$ term}\\~\\
+      %
+      & \fun{pointwise} &\in (\Integer \to \Integer \to \Bool) \to (\mathsf{ValType} \to \mathsf{ValType} \to \Bool)\\
+      & \text{Pointwise comparison of two $\mathsf{ValType}$ terms}
+  \end{align*}
+  \caption{$\ValClass$ and its Functions}
+  \label{fig:valclass}
+\end{figure}
+
+\subsection{$\Coin$ in the Allegra era}
+
+There are several ways to instantiate $\ValClass$ with a concrete type in a sensible way.
+For the Allegra era, we require the instance of it to represent a single asset, Ada. Hence
+we instantiate it with $\Coin$. This section defines the functions
+required for $\ValClass$ instantiation with $\Coin$. We give these in Figure
+\ref{fig:coin}. Addition and multiplication are defined in the usual way
+(as on $\Integer$).
+
+When multi-asset support on the ledger is introduced, Ada ($\Coin$) is still expected to be
+the most common type of token on the ledger.
+It is the only
+type of token that can be used for all non-UTxO ledger accounting, including deposits,
+fees, rewards, treasury, and the proof of stake protocol. For this reason, not
+all instances of $\Coin$ inside a transaction or in the ledger state can or
+should be replaced with the abstract $\ValClass$.
+
+%%
+%% Figure Coin Functions
+%%
+\begin{figure}[htb]
+  \begin{align*}
+      & \fun{zero} &\in \mathsf{ValType} \\~\\
+      %
+      & \fun{coin} &\in \fun{id}_{\Coin}\\~\\
+      %
+      & \fun{inject} &\in \fun{id}_{(\Coin \to \Coin)} \\~\\
+      %
+      & \fun{modifyCoin} &\in \fun{id}_{(\Coin \to \Coin)} \\~\\
+      %
+      & \fun{size} \wcard &= 0 \\~\\
+      %
+      & \fun{pointwise} &= \fun{id}_{(\Integer \to \Integer \to \Bool)}
+  \end{align*}
+  \caption{Function definitions required for $\ValClass$ instantiation with $\Coin$}
+  \label{fig:coin}
+\end{figure}
+
+\subsection{Multi-assets and $\Value$}
+
+Another way to instantiate $\ValClass$ is with $\Value$, which is the type to which
+$\ValClass$ is instantiated in the Mary era to support transacting with
+multiple types of assets, both user-defined and minted, and Ada. Terms of this
+type represent heterogeneous collections of assets. This
+This section describes the type $\Value$, the operations required on
+it, and its relation to $\Coin$.
+
+Figure \ref{fig:defs:value} introduces the basic types that make up the $\Value$ type.
+
+\begin{figure*}[t!]
   \emph{Derived types}
   %
   \begin{equation*}
     \begin{array}{r@{~\in~}l@{\qquad=\qquad}lr}
+      \var{aname} & ~\AssetName & \mathsf{ByteString} \\
       \var{pid} & \PolicyID & \ScriptHash \\
       \var{quan} & \Quantity & \Z \\
       %\text{quantity of a token}\\
@@ -103,7 +169,6 @@ pointwise :: (Integer -> Integer -> Bool) -> t -> t -> Bool
   \label{fig:defs:value}
 \end{figure*}
 
-\subsection*{Representing Multi-asset Types and Values}
 We will refer to a pair of a $\PolicyID$ and an
 $\AssetName$ as an $\AssetID$. The $\AssetID$ for Ada is $(\mathsf{adaPolicy}, \mathsf{adaName})$.
 This is symbolic only, no actual minting policy for Ada exists.
