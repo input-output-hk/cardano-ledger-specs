@@ -302,6 +302,9 @@ finitely supported maps, see Figure \ref{fig:pointwise}.
 
 There are other options for defining a $\ValClass$ instance. We give examples here
 that are actual $\Value$-like types that used elsewhere (eg. the wallet).
+Note that the constraints on the size (serialized or upper bound) are not relevant
+here, since they are not used in any concrete ShelleyMA ledger (ie. Mary or Allegra).
+So, the $\fun{size}$ function is not considered in the following discussion.
 
 \begin{itemize}
   \item The compact representation of $\Value$, $\mathsf{CompactValue}$. This

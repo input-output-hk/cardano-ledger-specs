@@ -134,11 +134,15 @@ of this rule as compared to the original Shelley UTXO rule:
     Note that this check implies that no quantity of any token appearing in that output can be
     negative.
 
+    In the case that $\ValClass$ is set to $\Coin$, this constraint exactly mimics
+    the $\fun{minUTxOValue}$ constraint in Shelley, see \ref{sec:min-value}.
+
     \item The serialized size of the $\ValClass$ term in each output is no greater than $\mathsf{MaxValSize}$
     (specified in Section~\ref{sec:value-size}).
     This ensures that each individual output is never so large that any transaction carrying all the
     witness data (eg. large scripts, etc.) necessary for spending such an output will exceed the transaction size limit.
-    See Section~\ref{sec:value-size} for details.
+    See Section~\ref{sec:value-size} for details. Note that this precondition can be assumed to
+    hold for $\ValClass$ instantiated to $\Coin$, as it is a single integer.
 \end{itemize}
 
 Note that updating the $\UTxO$ with the inputs and the outputs of the transaction
