@@ -345,12 +345,21 @@ valContext ::
   Data era
 valContext txinfo sp = Data (P.toData (P.ScriptContext txinfo (transScriptPurpose sp)))
 
+data ScriptResult = Passes | Fails ![String]
+
+andResult :: ScriptResult -> ScriptResult -> ScriptResult
+andResult Passes Passes = Passes
+andResult Passes ans = ans
+andResult ans Passes = ans
+andResult (Fails xs) (Fails ys) = Fails (xs ++ ys)
+
 -- The runPLCScript in the Specification has a slightly different type
 -- than the one in the implementation below. Made necessary by the the type
--- of P.evaluateScriptRestricting which is the interface to Plutus
+-- of P.evaluateScriptRestricting which is the interface to Plutus, and in the impementation
+-- we try to track why a script failed (if it does).
 
 -- | Run a Plutus Script, given the script and the bounds on resources it is allocated.
-runPLCScript :: CostModel -> SBS.ShortByteString -> ExUnits -> [P.Data] -> Bool
+runPLCScript :: CostModel -> SBS.ShortByteString -> ExUnits -> [P.Data] -> ScriptResult
 runPLCScript (CostModel cost) scriptbytestring units ds =
   case P.evaluateScriptRestricting
     P.Quiet
@@ -358,8 +367,8 @@ runPLCScript (CostModel cost) scriptbytestring units ds =
     (transExUnits units)
     scriptbytestring
     ds of
-    (_, Left _e) -> False -- trace ("\nrunPLC fails "++show _e++"\nData = "++show ds) False
-    (_, Right ()) -> True
+    (_, Left _e) -> Fails ["\nrunPLC fails " ++ show _e ++ "\nData = " ++ show ds]
+    (_, Right ()) -> Passes
 
 validPlutusdata :: P.Data -> Bool
 validPlutusdata (P.Constr _n ds) = all validPlutusdata ds

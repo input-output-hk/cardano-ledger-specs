@@ -38,7 +38,7 @@ import Cardano.Ledger.Alonzo.Tx
     txdats',
   )
 import qualified Cardano.Ledger.Alonzo.TxBody as Alonzo (TxBody (..), TxOut (..), vldt')
-import Cardano.Ledger.Alonzo.TxInfo (runPLCScript, txInfo, valContext)
+import Cardano.Ledger.Alonzo.TxInfo (ScriptResult (..), andResult, runPLCScript, txInfo, valContext)
 import Cardano.Ledger.Alonzo.TxWitness (TxWitness (txwitsVKey'), txscripts', unTxDats)
 import Cardano.Ledger.BaseTypes (StrictMaybe (..))
 import qualified Cardano.Ledger.Core as Core
@@ -219,14 +219,16 @@ evalScripts ::
   ) =>
   tx ->
   [(AlonzoScript.Script era, [Data era], ExUnits, CostModel)] ->
-  Bool
-evalScripts _tx [] = True
+  ScriptResult
+evalScripts _tx [] = Passes
 evalScripts tx ((AlonzoScript.TimelockScript timelock, _, _, _) : rest) =
-  evalTimelock vhks (Alonzo.vldt' (getField @"body" tx)) timelock && evalScripts tx rest
+  (lift $ evalTimelock vhks (Alonzo.vldt' (getField @"body" tx)) timelock) `andResult` evalScripts tx rest
   where
     vhks = Set.map witKeyHash (txwitsVKey' (getField @"wits" tx))
+    lift True = Passes
+    lift False = Fails ["Timelock: " ++ show timelock ++ " fails."]
 evalScripts tx ((AlonzoScript.PlutusScript pscript, ds, units, cost) : rest) =
-  runPLCScript cost pscript units (map getPlutusData ds) && evalScripts tx rest
+  runPLCScript cost pscript units (map getPlutusData ds) `andResult` evalScripts tx rest
 
 -- ===================================================================
 -- From Specification, Figure 12 "UTXOW helper functions"

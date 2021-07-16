@@ -43,6 +43,7 @@ import Cardano.Ledger.Shelley.Constraints (UsesScript, UsesValue)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Text (pack)
 import qualified Data.Text as T (pack)
 import Numeric.Natural (Natural)
 import qualified PlutusTx as Plutus
@@ -262,7 +263,7 @@ instance Arbitrary (PParamsUpdate era) where
 instance Mock c => Arbitrary (UtxosPredicateFailure (AlonzoEra c)) where
   arbitrary =
     oneof
-      [ ValidationTagMismatch <$> arbitrary,
+      [ ValidationTagMismatch <$> arbitrary <*> (pack <$> arbitrary),
         UpdateFailure <$> arbitrary
       ]
 
