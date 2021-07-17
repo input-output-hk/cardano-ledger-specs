@@ -1607,9 +1607,9 @@ alonzoUTXOWexamples =
               (trustMe False $ validatingTx pf)
               ( Left
                   [ WrappedShelleyEraFailure
-                        ( UtxoFailure
-                            (UtxosFailure (ValidationTagMismatch (IsValidating False) ("Script expected to fail, passes.")))
-                        )
+                      ( UtxoFailure
+                          (UtxosFailure (ValidationTagMismatch (IsValidating False) ("Script expected to fail, passes.")))
+                      )
                   ]
               ),
           testCase "invalid transaction marked as valid" $
@@ -1617,7 +1617,7 @@ alonzoUTXOWexamples =
               (trustMe True $ notValidatingTx pf)
               ( Left
                   [ WrappedShelleyEraFailure
-                        (UtxoFailure (UtxosFailure (ValidationTagMismatch (IsValidating True) (""))))
+                      (UtxoFailure (UtxosFailure (ValidationTagMismatch (IsValidating True) (""))))
                   ]
               ),
           testCase "too many execution units for tx" $
