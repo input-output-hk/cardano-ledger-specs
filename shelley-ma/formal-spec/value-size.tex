@@ -4,8 +4,8 @@
 In Shelley, the protocol parameter $\var{minUTxOValue}$ is used to
 disincentivize attacking nodes by putting many small outputs on the
 UTxO, permanently blocking memory. In the Mary era
-and onwards, the $\ValClass$ type replaces $\Coin$ in UTxO map. $\ValClass$ terms
-can (depending on the concrete instance) be arbitrarily large, so the ledger requires each $\UTxO$ entry to
+and onwards, the $\ValMonoid$ type replaces $\Coin$ in UTxO map. $\ValMonoid$ terms
+can potentially be arbitrarily large, so the ledger requires each $\UTxO$ entry to
 contain a minimum amount of Ada, proportional to its size.
 
 There is also another $\Value$ size consideration with respect to spendability
@@ -24,8 +24,8 @@ causing the output to be come unspendable (these are just a two examples) :
 \end{itemize}
 
 Note that since this ShelleyMA specification is written in terms of the abstract
-class $\ValClass$, the constraints involving both the serialized size and the upper bound estimate
-on the size of a term of any type that instantiates $\ValClass$ must hold.
+class $\ValMonoid$, the constraints involving both the serialized size and the upper bound estimate
+on the size of a term of any type with $\ValMonoid$ structure must hold.
 Two types are used to define concrete ledgers, $\Coin$ and $\Value$.
 The size calculations for $\Coin$, in practice,
 result in either trivial restrictions in the ledger rules,
@@ -41,8 +41,8 @@ sizes of $\Value$ terms.
   \emph{Abstract Functions}
   %
   \begin{align*}
-    & \fun{serSize} \in \ValClass \to \MemoryEstimate \\
-    & \text{Gives the size of the serialized representation of an instance of $\ValClass$}
+    & \fun{serSize} \in \ValMonoid \to \MemoryEstimate \\
+    & \text{Gives the size of the serialized representation of a $\ValMonoid$}
     \nextdef
     & \fun{anameLen} \in \AssetName \to \MemoryEstimate \\
     & \text{Returns the length (in bytes) of an asset name}
@@ -67,8 +67,8 @@ sizes of $\Value$ terms.
 \end{figure*}
 
 The function $\fun{serSize}$, unlike the functions $\fun{size}$ and $\fun{utxoEntrySize}$
-    (explained below), is left abstract. It returns the actual number of bytes a term of
-    a type used to instantiate $\ValClass$
+    (explained below), is left abstract. It returns the actual number of bytes a
+    term (of a type with $\ValMonoid$ structure)
     occupies in the serialized transaction (and hence is implementation-dependent).
 
     One reason for this design decision is that the $\fun{serSize}$ function is used constrain

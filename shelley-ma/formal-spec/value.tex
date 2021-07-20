@@ -1,44 +1,46 @@
 \section{Coin and Multi-Asset Tokens}
 \label{sec:coin-ma}
 
-This ShelleyMA specification allows us to have a single version of a ledger
-spec for both Allegra and Mary eras because we introduce an abstract type,
-$\ValClass$, that allows us to swap out the representation of ledger assets that
-are just Ada (ie. $\Coin$) for a type that represents multiple assets in a
-single term (eg. $\Value$), as well as swap out the type-specific functions
-used in the ledger rules and required for $\ValClass$ instantiation (see Figure \ref{fig:valclass}).
-We do so by instantiating $\ValClass$ to either one of the types. Note that
-it can, in theory, be instantiated to any other type on which we can meaningfully
-define the required functions (addition, size, etc.).
+In this chapter we introduce an algebraic structure, $\ValMonoid$,
+which we define to be a monoid with several additional functions.
+The monoidal structure and additional functions represent the
+features required in order to treat terms as \emph{assets},
+which includes the ability to do certain accounting operations on them (addition, etc.),
+as well as some other operations (see below).
+These operations are used to describe the ShelleyMA transaction processing rules
+without indicating what concrete type the $\ValMonoid$ monoid must be.
 
-\subsection{$\ValClass$}
+In order to give a concrete ledger specification, a concrete type
+endowed with $\ValMonoid$ structure must be used in its place.
+Depending on the concrete type selected for this purpose,
+we obtain distinct ledgers. In particular, we get
 
-$\ValClass$ is intuitively used as a placeholder for any type that can be used
-to represent (inside a transaction or in the ledger UTxO) quantities of a single asset or several different assets.
-Figure \ref{fig:valclass} gives names and types of functions in which $\ValClass$ is either
-an argument or the output type, and so they cannot be defined without assigning
-the abstract $\ValClass$ a specific type. Because these functions are used in the
-Allegra and Mary transition rules, to define the two concrete ledger models,
-we must not only pick a type with which to instantiate the $\ValClass$ abstraction,
-but also give concrete definitions to the associated functions.
+\begin{itemize}
+  \item the Allegra ledger rules with $\Coin$, and
+  \item the Mary ledger rules with $\Value$ (a type that represents a heterogeneous collection of assets in a
+  single term)
+\end{itemize}
 
+Below we give the definitions of all the functions that must be defined on
+$\Coin$ and $\Value$ in order for them to have the structure of $\ValMonoid$.
+We also give several other types which we can meaningfully
+support the definition of the required functions (addition, size, etc.).
+These types are convertible to and from the $\Value$ type, and appear in other
+parts of the system as a multi-asset representation which is more suitable in particular
+usecases.
+
+\subsection{$\ValMonoid$}
+
+Figure \ref{fig:ValMonoid} gives names and types of functions which
+make up the $\ValMonoid$ structure.
 
 %%
-%% Figure ValClass and its Functions
+%% Figure ValMonoid and its Functions
 %%
 \begin{figure}[htb]
-  \emph{Helper function}
-  %
   \begin{align*}
-    \mathsf{ValType} &\in \ValClass  \\
-    \text{Abstract type of asset-representing terms}
-  \end{align*}
-  %
-  \emph{Function definitions required for $\ValClass$ instantiation}
-  %
-  \begin{align*}
-      & \mathsf{ValType} ~\in~ \ValClass  \\
-      & \text{Arbitrary type instance}
+      & \mathsf{ValType} ~\in~ \mathsf{Type}  \\
+      & \text{A type}
       \nextdef
       %
       & \fun{zero} ~\in~ \mathsf{ValType} \\
@@ -59,7 +61,7 @@ but also give concrete definitions to the associated functions.
       \nextdef
       %
       & \fun{isZero} ~\in~ \mathsf{ValType} \to \Bool\\
-      & \fun{isZero}~v ~+~ v~=~\fun{zero} \\
+      & \fun{isZero}~v~=~(v~==~\fun{zero}) \\
       & \text{Is a given $\mathsf{ValType}$ term the additive identity?}
       \nextdef
       %
@@ -71,10 +73,10 @@ but also give concrete definitions to the associated functions.
       & \text{Create a $\mathsf{ValType}$ term containing only this amount of Ada}
       \nextdef
       %
-      & \fun{adaOnly} ~\in~ \ValClass \to \Bool \\
-      & \fun{adaOnly}~v =
+      & \fun{adaOnly} ~\in~ \mathsf{ValType} \to \Bool \\
+      & \fun{adaOnly} =
         \begin{cases}
-          \True & \fun{inject} \circ \fun{coin} = \fun{id}_{\ValClass} \\
+          \True & \fun{inject} \circ \fun{coin}~ = ~\fun{id}_{\mathsf{ValType}} \\
           \False & \text{otherwise}
         \end{cases} \\
       & \text{Check if a given $\mathsf{ValType}$ term contains only Ada}
@@ -91,16 +93,15 @@ but also give concrete definitions to the associated functions.
       & \fun{pointwise} ~\in~ (\Integer \to \Integer \to \Bool) \to (\mathsf{ValType} \to \mathsf{ValType} \to \Bool)\\
       & \text{Pointwise comparison of two $\mathsf{ValType}$ terms}
   \end{align*}
-  \caption{$\ValClass$ and its Functions}
-  \label{fig:valclass}
+  \caption{The $\ValMonoid$ Structure}
+  \label{fig:ValMonoid}
 \end{figure}
 
 \subsection{$\Coin$ in the Allegra era}
 
-There are several ways to instantiate $\ValClass$ with a concrete type in a sensible way.
-For the Allegra era, we require the instance of it to represent a single asset, Ada. Hence
-we instantiate it with $\Coin$. This section defines the functions
-required for $\ValClass$ instantiation with $\Coin$. We give these in Figure
+For the Allegra era, we require the $\ValMonoid$ asset representation to support
+only a single asset, Ada, whose type we call $\Coin$. This section defines the
+$\ValMonoid$ functions for the $\Coin$ type, see Figure
 \ref{fig:coin}. Addition and multiplication are defined in the usual way
 (as on $\Integer$).
 
@@ -109,8 +110,8 @@ the most common type of token on the ledger.
 It is the only
 type of token that can be used for all non-UTxO ledger accounting, including deposits,
 fees, rewards, treasury, and the proof of stake protocol. For this reason, not
-all instances of $\Coin$ inside a transaction or in the ledger state can or
-should be replaced with the abstract $\ValClass$.
+all occurrences of $\Coin$ inside a transaction or in the ledger state can or
+should be replaced with the abstract $\ValMonoid$.
 
 %%
 %% Figure Coin Functions
@@ -134,7 +135,7 @@ should be replaced with the abstract $\ValClass$.
       %
       & \fun{pointwise} ~=~ \fun{id}_{(\Integer \to \Integer \to \Bool)}
   \end{align*}
-  \caption{Function definitions required for $\ValClass$ instantiation with $\Coin$}
+  \caption{$\ValMonoid$ structure with $\Coin$}
   \label{fig:coin}
 \end{figure}
 
@@ -147,7 +148,7 @@ these functions give the identity on $\Coin$, but composed in the opposite order
 
 \[\fun{inject} \circ \fun{coin}\]
 
-they return a $\ValClass$ containing only the Ada tokens contained in the original $\ValClass$.
+they return a $\ValMonoid$ containing only the Ada tokens contained in the original $\ValMonoid$.
 
 \textbf{Fungible and non-fungible tokens.}
 Recall that a token is said to be fungible at a specific time (slot $s$, for example) if
@@ -165,15 +166,15 @@ type of guarantee can be encoded in a minting policy.
 
 \subsection{Multi-assets and $\Value$ in the Mary Era}
 
-$\Value$ is the type to which
-$\ValClass$ is instantiated in the Mary era to support transacting with
-multiple types of assets, both user-defined and minted, and Ada. Terms of this
-type represent heterogeneous collections of assets. This
+Terms of the $\Value$ type represent heterogeneous collections of assets,
+both user-defined, and Ada. In place of the abstract $\ValMonoid$ structure,
+this type is used in the concrete Mary era ledger.
 This section describes the type $\Value$, the operations required on
-it, and its relation to $\Coin$.
+it, its relation to $\Coin$. It also as gives the definitions of the
+$\ValMonoid$ functions on $\Value$.
 
 Figure \ref{fig:defs:value} introduces the basic types that make up the $\Value$ type,
-as well as some of the basic functions needed for $\ValClass$ instantiation.
+as well as defining the functions required to for $\Value$ to be a $\ValMonoid$.
 
 \begin{figure*}[t!]
   \emph{Derived types}
@@ -191,15 +192,15 @@ as well as some of the basic functions needed for $\ValClass$ instantiation.
     \end{array}
   \end{equation*}
   %
-  \emph{Functions required for $\ValClass$ instantiation with $\Value$}
+  \emph{$\ValMonoid$ and auxiliary functions for $\Value$}
   %
   \begin{align*}
-    & \fun{pids} ~\in~ \Value \to \powerset{\PolicyID} \\
-    & \fun{pids}~v ~=~ \supp{~v}
+    & \fun{policies} ~\in~ \Value \to \powerset{\PolicyID} \\
+    & \fun{policies}~v ~=~ \supp{~v}
     \nextdef
     %
     & \fun{anames} ~\in~ \Value \to \powerset{\PolicyID} \\
-    & \fun{anames}~v ~=~ \bigcup_{pid \in\fun{pids}{~v}} \supp{v~pid}
+    & \fun{anames}~v ~=~ \bigcup_{pid \in\fun{policies}{~v}} \supp{v~pid}
     \nextdef
     %
     & \fun{zero} ~=~ (0, \Nothing)
@@ -216,7 +217,7 @@ as well as some of the basic functions needed for $\ValClass$ instantiation.
     %
     & \fun{size} ~~~ \text{see Section \ref{sec:value-size}}
   \end{align*}
-  \caption{Type Definitions and auxiliary functions for Value}
+  \caption{$\ValMonoid$ Function Definitions and Auxiliary Functions for Value}
   \label{fig:defs:value}
 \end{figure*}
 
@@ -229,7 +230,9 @@ as well as some of the basic functions needed for $\ValClass$ instantiation.
     See sections \ref{sec:transactions} and \ref{sec:utxo} for details.
 
   \item $\AssetName$ is a byte string used to distinguish different tokens with the same $\PolicyID$.
-    Each $aname$ identifies a unique kind of token in $\var{pid}$. The maximum length of this
+    Each $aname$ identifies a unique kind of token out of all the tokens under the
+    $\var{pid}$ policy (but not necessarily among tokens kinds under other policies).
+    The maximum length of this
     byte string is 32 bytes (this is not explicitly enforced in this spec).
 
   \item $\AssetID$ is a pair of the policy ID and the asset name. It is a unique and permanent
@@ -274,9 +277,9 @@ cannot be extended to user-defined tokens.
 We sometimes refer to Ada as the primary or principal currency. Ada does not,
 for the purposes of the Mary ledger spec, have a $\PolicyID$ or an $\AssetName$.
 
-\subsection{Value Operations and Partial Order}
-To fully describe $\ValClass$ instantiation with $\Value$, we require
-additional operations on $\Value$, including binary relations, addition, and
+\subsection{Pointwise Value Operations and Partial Order}
+We have a number of operations on $\Value$ left to define for it to have
+$\ValMonoid$ structure. These are binary relations, addition, and
 scalar multiplication. These are all done
 pointwise in accordance with the usual definitions of these operations on
 finitely supported maps, see Figure \ref{fig:pointwise}.
@@ -284,32 +287,30 @@ finitely supported maps, see Figure \ref{fig:pointwise}.
 \begin{figure*}[t!]
   \begin{align*}
     & (c, v)~+~(d, w) =& (c+d, ~\{~ pid\mapsto_0 (aname\mapsto_0 (v~\var{pid}~\var{aname})~+~(w~\var{pid}~\var{aname}) ~\vert~ \\
-    & & \var{pid} \in (\fun{pids}~v~\cup~\fun{pids}~w),~\var{aname}~\in~(\fun{anames}~v~\cup~\fun{anames}~w) ~\} )
+    & & \var{pid} \in (\fun{policies}~v~\cup~\fun{policies}~w),~\var{aname}~\in~(\fun{anames}~v~\cup~\fun{anames}~w) ~\} )
     \nextdef
     %
     & q~*~(c, v) =& (q*c, ~\{~ pid\mapsto_0 (aname\mapsto_0 (q~*~(v~\var{pid}~\var{aname})) ~\vert~ \\
-    & & \var{pid} \in \fun{pids}~v,~\var{aname}~\in~\fun{anames}~v ~\} )
+    & & \var{pid} \in \fun{policies}~v,~\var{aname}~\in~\fun{anames}~v ~\} )
     \nextdef
     %
-    & \fun{pointwise}~R~(c, v)~(d, w) =& (c~=~d) \wedge \forall~(\var{pid} \in \fun{pids}~v~\cup~\fun{pids}~u), \\
+    & \fun{pointwise}~R~(c, v)~(d, w) =& (c~=~d) \wedge \forall~(\var{pid} \in \fun{policies}~v~\cup~\fun{policies}~u), \\
     & & \forall~(\var{aname}~\in~\fun{anames}~v~\cup~\fun{anames}~u),~R~(v~\var{pid}~\var{aname})~(w~\var{pid}~\var{aname})
   \end{align*}
   \caption{Pointwise operations on Value}
   \label{fig:pointwise}
 \end{figure*}
 
-\subsection{Other Instances of $\ValClass$.}
+\subsection{Other Examples of $\ValMonoid$.}
 
-There are other options for defining a $\ValClass$ instance. We give examples here
-that are actual $\Value$-like types that used elsewhere (eg. the wallet).
-Note that the constraints on the size (serialized or upper bound) are not relevant
-here, since they are not used in any concrete ShelleyMA ledger (ie. Mary or Allegra).
-So, the $\fun{size}$ function is not considered in the following discussion.
+We give examples here of $\ValMonoid$-structured types
+that are types similar to $\Value$ in spirit, and are used elsewhere
+in the system (eg. the wallet).
 
 \begin{itemize}
   \item The compact representation of $\Value$, $\mathsf{CompactValue}$. This
   is a compressed representation of $\Value$ that is isomorphic to it.
-  All the $\ValClass$ operations
+  All the $\ValMonoid$ operations
   are defined directly in terms of $\Value$ operations, by first converting
   to $\Value$, performing the operation, then converting back.
 
@@ -319,7 +320,7 @@ So, the $\fun{size}$ function is not considered in the following discussion.
   \[ \AssetID \mapsto \Quantity \]
 
   In this representation, which is also isomorphic to $\Value$, doing the
-  $\ValClass$ operations pointwise directly on this type commutes with conversion to
+  $\ValMonoid$ operations pointwise directly on this type commutes with conversion to
   and from $\Value$.
 
   \item A $\Value$ representation that is not a pair of $\Coin$ and a map, but just

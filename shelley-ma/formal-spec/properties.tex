@@ -7,13 +7,13 @@
 The properties of this section are modifications and additions to the properties of the Shelley ledger. See \cite{shelley_spec} for definitions used here. We need to amend the definition of $\Val$ to the following:
 
 \begin{equation*}
-    \Val(x \in \ValClass) = x
+    \Val(x \in \ValMonoid) = x
 \end{equation*}
 \begin{equation*}
     \Val(x \in \Coin) = \fun{inject}~x
 \end{equation*}
 \begin{equation*}
-    \Val((\wcard\mapsto (y \in \ValClass))^{*}) = \sum y
+    \Val((\wcard\mapsto (y \in \ValMonoid))^{*}) = \sum y
 \end{equation*}
 
 \begin{lemma}
@@ -32,7 +32,7 @@ The properties of this section are modifications and additions to the properties
   The proof is identical to the corresponding one in the previous
   specification, except that unfolding $\fun{consumed}$ gives an
   additional $\fun{mint}~{txb}$ term and all $\Coin$ quantities have
-  to be converted to terms of type $\ValClass$.
+  to be converted to terms of type $\ValMonoid$.
 \end{proof}
 
 We also need to track the sum of the $\fun{mint}$ fields of all

@@ -43,25 +43,20 @@ replaces the $\Coin$ type with a type the terms of which are bundles of arbitrar
 (user-defined ones, as well as lovelace), which we call $\Value$.
 
 In this specification, we represent all the places where the $\Coin$ type is used in Allegra,
-and the $\Value$ type in Mary, as $\ValClass$. This is not itself a type, but an
-abstraction representing any type that has certain functions defined on its terms,
+and the $\Value$ type in Mary, as $\ValMonoid$. This is not itself a type, but an
+abstract algebraic structure representing any type that has certain functions defined on its terms,
 such as addition of two terms,
-a size function, etc. (see Section \ref{sec:value} for details). We say that we
-\emph{instantiate} $\ValClass$ with a specific type (eg. $\Coin$) when we interpretet all
-uses of $\ValClass$ in the spec as replaced by the chosen type, and all the functions
-on abstract terms of $\ValClass$ as the versions specific to the type. For example,
-when we instantiate $\ValClass$ with $\Coin$, we specify that
-addition of two terms is the usual addition of two $\Coin$ terms, and use
-the $\Coin$ addition anywhere $\ValClass$ terms are added in the spec.
+a size function, etc. (see Section \ref{sec:value} for details). These functions
+are used in the ShelleyMA definitions, and are interpreted as functions on either
+$\Coin$ or $\Value$, depending on the era.
 
-Introducing the $\ValClass$ abstraction (including the required
-functions)
+Introducing the $\ValMonoid$ abstraction
 \begin{itemize}
-  \item makes this document is a specification for Allegra when $\ValClass$
-  is instantiated to $\Coin$, and therefore transitions rules invoke the $\Coin$-specific functions
-  defining which is required for instantiating $\ValClass$, and
-  \item makes it a specification for Mary when $\ValClass$
-  is instantiated to $\Value$, together with the $\Value$-specific functions required by $\ValClass$.
+  \item makes this document is a specification for Allegra when we take $\ValMonoid$
+  to be $\Coin$, and therefore transitions rules use the $\Coin$-specific functions
+  as defined in Section \ref{sec:value},
+  \item makes it a specification for Mary when we take $\ValMonoid$ to be
+  $\Value$, and apply $\Value$-specific functions in the rules.
 \end{itemize}
 
 Note that this spec is for two distinct eras, but we give only one translations, which is

@@ -30,18 +30,18 @@
     & \fun{getCoin} \in \TxOut \to \Coin \\
     & \fun{getCoin}~{(\wcard,~\var{out})} ~=~\fun{coin}~\var{out}
     \nextdef
-    & \fun{ubalance} \in \UTxO \to \hldiff{\ValClass} \\
+    & \fun{ubalance} \in \UTxO \to \hldiff{\ValMonoid} \\
     & \fun{ubalance} ~ utxo = \hldiff{\sum_{\wcard\mapsto\var{u}\in~\var{utxo}} \fun{getValue}~\var{u}}
   \end{align*}
   %
   \emph{Produced and Consumed Calculations}
   \begin{align*}
-    & \fun{consumed} \in \PParams \to \UTxO \to \TxBody \to \hldiff{\ValClass} \\
+    & \fun{consumed} \in \PParams \to \UTxO \to \TxBody \to \hldiff{\ValMonoid} \\
     & \consumed{pp}{utxo}{txb} = \\
     & ~~\ubalance{(\txins{txb} \restrictdom \var{utxo})} ~+~ \hldiff{\fun{mint}~\var{txb}} \\
     &~~+~\hldiff{\fun{inject}}(\fun{wbalance}~(\fun{txwdrls}~{txb})~+~ \keyRefunds{pp}{txb})
     \nextdef
-    & \fun{produced} \in \PParams \to \StakePools \to \TxBody \to \hldiff{\ValClass} \\
+    & \fun{produced} \in \PParams \to \StakePools \to \TxBody \to \hldiff{\ValMonoid} \\
     & \fun{produced}~\var{pp}~\var{stpools}~\var{txb} = \\
     &~~\ubalance{(\fun{outs}~{txb})} \\
     &~~+ \hldiff{\fun{inject}}(\txfee{txb} + \totalDeposits{pp}{stpools}{(\txcerts{txb})})
@@ -73,7 +73,7 @@ UTxO transition system with multi-assets:
   \item The $\fun{ubalance}$ function calculates the sum total in a given UTxO.
 
   \item The $\fun{consumed}$ and $\fun{produced}$ calculations are similar to their Shelley
-    counterparts, with the following changes: 1) They return terms of $\ValClass$, which
+    counterparts, with the following changes: 1) They return terms of $\ValMonoid$, which
     the administrative fields of type $\Coin$ have to be converted to, via $\fun{inject}$.
     2) $\fun{consumed}$ also contains the $\fun{mint}$ field of the transaction.
     This is explained below.
@@ -124,30 +124,30 @@ of this rule as compared to the original Shelley UTXO rule:
   era, ensures that no assets can ever be minted (since Ada is the only existing
   asset).
 
-  \item The $\ValClass$ term in each output is constrained from below by a
-    $\ValClass$ term that contains some amount of ada and no other tokens.
-    The amount of ada that is contained in the constraint $\ValClass$ term (and
-    hence the $\ValClass$ term in the output itself must contain at least as much) depends on the
+  \item The $\ValMonoid$ term in each output is constrained from below by a
+    $\ValMonoid$ term that contains some amount of ada and no other tokens.
+    The amount of ada that is contained in the constraint $\ValMonoid$ term (and
+    hence the $\ValMonoid$ term in the output itself must contain at least as much) depends on the
     size of the output. To get the minimum ada amount, the size of the output is multiplied by
     the function $\var{adaPerUTxOWord}$ applied to protocol parameters
     (see Section~\ref{sec:value-size} for the function definition).
     Note that this check implies that no quantity of any token appearing in that output can be
     negative.
 
-    In the case that $\ValClass$ is set to $\Coin$, this constraint exactly mimics
+    In the case that $\ValMonoid$ is set to $\Coin$, this constraint exactly mimics
     the $\fun{minUTxOValue}$ constraint in Shelley, see \ref{sec:min-value}.
 
-    \item The serialized size of the $\ValClass$ term in each output is no greater than $\mathsf{MaxValSize}$
+    \item The serialized size of the $\ValMonoid$ term in each output is no greater than $\mathsf{MaxValSize}$
     (specified in Section~\ref{sec:value-size}).
     This ensures that each individual output is never so large that any transaction carrying all the
     witness data (eg. large scripts, etc.) necessary for spending such an output will exceed the transaction size limit.
     See Section~\ref{sec:value-size} for details. Note that this precondition can be assumed to
-    hold for $\ValClass$ instantiated to $\Coin$, as it is a single integer.
+    hold for $\ValMonoid$ instantiated to $\Coin$, as it is a single integer.
 \end{itemize}
 
 Note that updating the $\UTxO$ with the inputs and the outputs of the transaction
 looks the same as in the Shelley rule. There is a type-level difference however, as
-the outputs of a transaction contain a $\ValClass$ term, rather than
+the outputs of a transaction contain a $\ValMonoid$ term, rather than
 $\Coin$.
 
 
@@ -253,7 +253,7 @@ Figure~\ref{fig:functions-witnesses} contains the changed definition
 of the function $\fun{scriptsNeeded}$, which also collects the scripts
 necessary for minting. See Section \ref{sec:transactions} for the definitions of
 $\fun{minted}$, which are specific to the exact type used to instantiate
-$\ValClass$. Recall that in Allegra, no assets can ever be minted, so there are no scripts to run that
+$\ValMonoid$. Recall that in Allegra, no assets can ever be minted, so there are no scripts to run that
 validate minting.
 
 The witnessing rule UTXOW only needs a minor change for verifying the metadata hash,
