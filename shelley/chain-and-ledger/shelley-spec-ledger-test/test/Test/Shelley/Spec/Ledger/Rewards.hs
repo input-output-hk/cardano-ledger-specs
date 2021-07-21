@@ -323,7 +323,7 @@ rewardsBoundedByPot _ = property $ do
         runShelleyBase $
           runProvM $
             reward
-              (_d pp, _a0 pp, _nOpt pp)
+              (_d pp, _a0 pp, _nOpt pp, pvMajor (_protocolVersion pp))
               bs
               rewardPot
               rewardAcnts
@@ -391,7 +391,7 @@ rewardsProvenance _ = generate $ do
         runShelleyBase $
           runWithProvM def $
             reward
-              (_d pp, _a0 pp, _nOpt pp)
+              (_d pp, _a0 pp, _nOpt pp, pvMajor (_protocolVersion pp))
               bs
               rewardPot
               rewardAcnts
@@ -749,7 +749,7 @@ newEpochProp tracelen propf = withMaxSuccess 100 $
 
 reward ::
   forall crypto.
-  (UnitInterval, NonNegativeInterval, Natural) ->
+  (UnitInterval, NonNegativeInterval, Natural, Natural) ->
   BlocksMade crypto ->
   Coin ->
   Set (Credential 'Staking crypto) ->
@@ -765,7 +765,7 @@ reward pp bm r addrsRew poolParams stake delegs tot asc slotsPerEpoch =
 
 rewardPulser ::
   forall c.
-  (UnitInterval, NonNegativeInterval, Natural) ->
+  (UnitInterval, NonNegativeInterval, Natural, Natural) ->
   BlocksMade c ->
   Coin ->
   Set (Credential 'Staking c) ->
@@ -777,7 +777,7 @@ rewardPulser ::
   EpochSize ->
   Pulser c
 rewardPulser
-  (pp_d, pp_a0, pp_nOpt)
+  (pp_d, pp_a0, pp_nOpt, pp_mv)
   (BlocksMade b)
   r
   addrsRew
@@ -790,7 +790,7 @@ rewardPulser
     where
       totalBlocks = sum b
       Coin activeStake = fold . unStake $ stake
-      free = (FreeVars b delegs stake addrsRew totalStake activeStake asc totalBlocks r slotsPerEpoch pp_d pp_a0 pp_nOpt)
+      free = (FreeVars b delegs stake addrsRew totalStake activeStake asc totalBlocks r slotsPerEpoch pp_d pp_a0 pp_nOpt pp_mv)
       pulser :: Pulser c
       pulser = RSLP 2 free (StrictSeq.fromList $ Map.elems poolParams) (RewardAns Map.empty Map.empty)
 

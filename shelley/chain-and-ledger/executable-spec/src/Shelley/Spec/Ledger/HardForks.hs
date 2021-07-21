@@ -6,10 +6,12 @@ module Shelley.Spec.Ledger.HardForks
   ( aggregatedRewards,
     allowMIRTransfer,
     validatePoolRewardAccountNetID,
+    allowScriptStakeCredsToEarnRewards,
   )
 where
 
 import GHC.Records
+import Numeric.Natural (Natural)
 import Shelley.Spec.Ledger.PParams (ProtVer (..))
 
 aggregatedRewards ::
@@ -38,3 +40,10 @@ validatePoolRewardAccountNetID ::
   pp ->
   Bool
 validatePoolRewardAccountNetID pp = pvMajor (getField @"_protocolVersion" pp) > 4
+
+-- | Starting with protocol version 5, Stake Credentials bound by scripts
+-- will be eligibile for staking rewards.
+allowScriptStakeCredsToEarnRewards ::
+  Natural ->
+  Bool
+allowScriptStakeCredsToEarnRewards pvM = pvM > 4

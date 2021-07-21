@@ -223,7 +223,8 @@ data FreeVars crypto = FreeVars
     slotsPerEpoch :: !EpochSize,
     pp_d :: !UnitInterval, -- The last three fields come from some version of PParams
     pp_a0 :: !NonNegativeInterval,
-    pp_nOpt :: !Natural
+    pp_nOpt :: !Natural,
+    pp_mv :: !Natural
   }
   deriving (Eq, Show, Generic)
   deriving (NoThunks)
@@ -245,7 +246,8 @@ instance (CC.Crypto crypto) => ToCBOR (FreeVars crypto) where
           slotsPerEpoch,
           pp_d,
           pp_a0,
-          pp_nOpt
+          pp_nOpt,
+          pp_mv
         }
       ) =
       encode
@@ -259,6 +261,7 @@ instance (CC.Crypto crypto) => ToCBOR (FreeVars crypto) where
             !> To pp_d
             !> E boundedRationalToCBOR pp_a0
             !> To pp_nOpt
+            !> To pp_mv
         )
 
 instance (CC.Crypto crypto) => FromCBOR (FreeVars crypto) where
@@ -274,6 +277,7 @@ instance (CC.Crypto crypto) => FromCBOR (FreeVars crypto) where
           <! From {- pp_d -}
           <! D boundedRationalFromCBOR {- pp_a0 -}
           <! From {- pp_nOpt -}
+          <! From {- pp_mv -}
       )
 
 -- =====================================================================
@@ -299,7 +303,8 @@ rewardStakePool
         slotsPerEpoch,
         pp_d,
         pp_a0,
-        pp_nOpt
+        pp_nOpt,
+        pp_mv
       }
     )
   (RewardAns m1 m2)
@@ -318,7 +323,7 @@ rewardStakePool
     case blocksProduced of
       Nothing -> pure $ RewardAns m1 (Map.insert hk ls m2)
       Just n -> do
-        m <- rewardOnePool (pp_d, pp_a0, pp_nOpt) r n totalBlocks pparams actgr sigma sigmaA (Coin totalStake) addrsRew
+        m <- rewardOnePool (pp_d, pp_a0, pp_nOpt, pp_mv) r n totalBlocks pparams actgr sigma sigmaA (Coin totalStake) addrsRew
         pure $ RewardAns (Map.unionWith Set.union m m1) (Map.insert hk ls m2)
 
 -- ================================================================

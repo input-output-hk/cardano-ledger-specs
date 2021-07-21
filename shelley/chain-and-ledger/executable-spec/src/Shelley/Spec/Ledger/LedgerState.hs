@@ -1187,6 +1187,7 @@ startStep slotsPerEpoch b@(BlocksMade b') es@(EpochState acnt ss ls pr _ nm) max
           (getField @"_d" pr)
           (getField @"_a0" pr)
           (getField @"_nOpt" pr)
+          (pvMajor $ getField @"_protocolVersion" pr)
       pulser :: Pulser (Crypto era)
       pulser =
         RSLP

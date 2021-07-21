@@ -465,7 +465,7 @@ aggregateRewards pp rewards =
 rewardOnePool ::
   forall c m.
   Monad m =>
-  (UnitInterval, NonNegativeInterval, Natural) ->
+  (UnitInterval, NonNegativeInterval, Natural, Natural) ->
   Coin ->
   Natural ->
   Natural ->
@@ -480,7 +480,8 @@ rewardOnePool ::
     m
     (Map (Credential 'Staking c) (Set (Reward c)))
 rewardOnePool
-  (pp_d, pp_a0, pp_nOpt) -- (Decentralization parameter, Pool influence, Desired number of pools)
+  (pp_d, pp_a0, pp_nOpt, pp_mv)
+  -- (Decentralization parameter, Pool influence, Desired number of pools, major version)
   r
   blocksN
   blocksTotal
@@ -524,7 +525,7 @@ rewardOnePool
               hk `Set.member` addrsRew
           ]
       notPoolOwner (KeyHashObj hk) = hk `Set.notMember` _poolOwners pool
-      notPoolOwner (ScriptHashObj _) = False
+      notPoolOwner (ScriptHashObj _) = HardForks.allowScriptStakeCredsToEarnRewards pp_mv
       lReward =
         leaderRew
           poolR

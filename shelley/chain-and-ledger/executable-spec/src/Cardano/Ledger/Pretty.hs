@@ -515,7 +515,7 @@ ppRewardSnapShot (RewardSnapShot snaps a0 nopt ver non deltaR1 rR deltaT1 total 
     ]
 
 ppFreeVars :: FreeVars crypto -> PDoc
-ppFreeVars (FreeVars b1 del stake1 addrs total active asc1 blocks r1 slots d a0 nOpt) =
+ppFreeVars (FreeVars b1 del stake1 addrs total active asc1 blocks r1 slots d a0 nOpt mv) =
   ppRecord
     "FreeVars"
     [ ("b", ppMap ppKeyHash ppNatural b1),
@@ -530,7 +530,8 @@ ppFreeVars (FreeVars b1 del stake1 addrs total active asc1 blocks r1 slots d a0 
       ("slotserEpoch", ppEpochSize slots),
       ("d", ppUnitInterval d),
       ("a0", ppRational $ unboundRational a0),
-      ("nOpt", ppNatural nOpt)
+      ("nOpt", ppNatural nOpt),
+      ("mv", ppNatural mv)
     ]
 
 ppAns :: RewardAns crypto -> PDoc
