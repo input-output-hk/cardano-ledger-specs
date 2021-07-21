@@ -1,76 +1,225 @@
 \section{Coin and Multi-Asset Tokens}
 \label{sec:coin-ma}
 
-This section describes the type $\Value$, the operations required on
-it, and its relation to $\Coin$.
+In this chapter we introduce an algebraic structure, $\ValMonoid$,
+which we define to be a monoid with several additional functions.
+The monoidal structure and additional functions represent the
+features required in order to treat terms as \emph{assets},
+which includes the ability to do certain accounting operations on them (addition, etc.),
+as well as some other operations (see below).
+These operations are used to describe the ShelleyMA transaction processing rules
+without indicating what concrete type the $\ValMonoid$ monoid must be.
 
-When multi-asset support on the ledger is introduced, Ada is still expected to be
+In order to give a concrete ledger specification, a concrete type
+endowed with $\ValMonoid$ structure must be used in its place.
+Depending on the concrete type selected for this purpose,
+we obtain distinct ledgers. In particular, we get
+
+\begin{itemize}
+  \item the Allegra ledger rules with $\Coin$, and
+  \item the Mary ledger rules with $\Value$ (a type that represents a heterogeneous collection of assets in a
+  single term)
+\end{itemize}
+
+Below we give the definitions of all the functions that must be defined on
+$\Coin$ and $\Value$ in order for them to have the structure of $\ValMonoid$.
+We also give several other types which we can meaningfully
+support the definition of the required functions (addition, size, etc.).
+These types are convertible to and from the $\Value$ type, and appear in other
+parts of the system as a multi-asset representation which is more suitable in particular
+usecases.
+
+\subsection{$\ValMonoid$}
+
+Figure \ref{fig:ValMonoid} gives names and types of functions which
+make up the $\ValMonoid$ structure.
+
+%%
+%% Figure ValMonoid and its Functions
+%%
+\begin{figure}[htb]
+  \begin{align*}
+      & \mathsf{ValType} ~\in~ \mathsf{Type}  \\
+      & \text{A type}
+      \nextdef
+      %
+      & \fun{zero} ~\in~ \mathsf{ValType} \\
+      & \text{Additive identity of $\mathsf{ValType}$}
+      \nextdef
+      %
+      & (+) ~\in~ \mathsf{ValType} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & \text{Addition on $\mathsf{ValType}$}
+      \nextdef
+      %
+      & (*) ~\in~ \mathsf{Integer} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & \text{Scale $\mathsf{ValType}$ value by integral constant}
+      \nextdef
+      %
+      & (-) ~\in~ \mathsf{ValType} \to \mathsf{ValType} \to \mathsf{ValType}\\
+      & v_1~-~v_2 ~=~ v_1~+~((-1)~*~v_2)\\
+      & \text{Subtraction on $\mathsf{ValType}$}
+      \nextdef
+      %
+      & \fun{isZero} ~\in~ \mathsf{ValType} \to \Bool\\
+      & \fun{isZero}~v~=~(v~==~\fun{zero}) \\
+      & \text{Is a given $\mathsf{ValType}$ term the additive identity?}
+      \nextdef
+      %
+      & \fun{coin} ~\in~ \mathsf{ValType} \to \Coin\\
+      & \text{Return the Ada contained in a $\mathsf{ValType}$ term}
+      \nextdef
+      %
+      & \fun{inject} ~\in~ \Coin \to \mathsf{ValType}\\
+      & \text{Create a $\mathsf{ValType}$ term containing only this amount of Ada}
+      \nextdef
+      %
+      & \fun{adaOnly} ~\in~ \mathsf{ValType} \to \Bool \\
+      & \fun{adaOnly} =
+        \begin{cases}
+          \True & \fun{inject} \circ \fun{coin}~ = ~\fun{id}_{\mathsf{ValType}} \\
+          \False & \text{otherwise}
+        \end{cases} \\
+      & \text{Check if a given $\mathsf{ValType}$ term contains only Ada}
+      \nextdef
+      %
+      & \fun{modifyCoin} ~\in~ (\Coin \to \Coin) \to (\mathsf{ValType} \to \mathsf{ValType})\\
+      & \text{Modify the Ada part of $\mathsf{ValType}$}
+      \nextdef
+      %
+      & \fun{size} ~\in~ \mathsf{ValType} \to \MemoryEstimate\\
+      & \text{Return the size in words of a $\mathsf{ValType}$ term}
+      \nextdef
+      %
+      & \fun{pointwise} ~\in~ (\Integer \to \Integer \to \Bool) \to (\mathsf{ValType} \to \mathsf{ValType} \to \Bool)\\
+      & \text{Pointwise comparison of two $\mathsf{ValType}$ terms}
+  \end{align*}
+  \caption{The $\ValMonoid$ Structure}
+  \label{fig:ValMonoid}
+\end{figure}
+
+\subsection{$\Coin$ in the Allegra era}
+
+For the Allegra era, we require the $\ValMonoid$ asset representation to support
+only a single asset, Ada, whose type we call $\Coin$. This section defines the
+$\ValMonoid$ functions for the $\Coin$ type, see Figure
+\ref{fig:coin}. Addition and multiplication are defined in the usual way
+(as on $\Integer$).
+
+When multi-asset support on the ledger is introduced, Ada ($\Coin$) is still expected to be
 the most common type of token on the ledger.
-The $\Coin$ type is used to represent an amount of Ada.
 It is the only
 type of token that can be used for all non-UTxO ledger accounting, including deposits,
-fees, rewards, treasury, and the proof of stake protocol.
+fees, rewards, treasury, and the proof of stake protocol. For this reason, not
+all occurrences of $\Coin$ inside a transaction or in the ledger state can or
+should be replaced with the abstract $\ValMonoid$.
+
+%%
+%% Figure Coin Functions
+%%
+\begin{figure}[htb]
+  \begin{align*}
+      & \fun{zero} ~=~ 0
+      \nextdef
+      %
+      & \fun{coin} ~=~ \fun{id}_{\Coin}
+      \nextdef
+      %
+      & \fun{inject} ~=~ \fun{id}_{(\Coin \to \Coin)}
+      \nextdef
+      %
+      & \fun{modifyCoin} ~=~ \fun{id}_{(\Coin \to \Coin)}
+      \nextdef
+      %
+      & \fun{size}~\wcard ~=~ 0
+      \nextdef
+      %
+      & \fun{pointwise} ~=~ \fun{id}_{(\Integer \to \Integer \to \Bool)}
+  \end{align*}
+  \caption{$\ValMonoid$ structure with $\Coin$}
+  \label{fig:coin}
+\end{figure}
+
+\textbf{Relation between $\fun{inject}$ and $\fun{coin}$.}
+When composed as
+
+\[\fun{coin} \circ \fun{inject} = \fun{id}_{\Coin}\]
+
+these functions give the identity on $\Coin$, but composed in the opposite order as
+
+\[\fun{inject} \circ \fun{coin}\]
+
+they return a $\ValMonoid$ containing only the Ada tokens contained in the original $\ValMonoid$.
+
+\textbf{Fungible and non-fungible tokens.}
+Recall that a token is said to be fungible at a specific time (slot $s$, for example) if
+there are two or more tokens in existence on the ledger that are indistinguishable from
+each other, ie. they have the exact same identifier. Tokens with the same
+identifier are fungible with each other, but not with tokens with a different identifier.
+
+If there exists only a single
+token with a given identifier, it is said to be unique (or non-fungible).
+The usual meaning of \emph{non-fungible token} implies, additionally to the
+requirement that a token is unique on the ledger at a given time, that
+it is programmatically guaranteed to remain unique indefinitely. This
+type of guarantee can be encoded in a minting policy.
+
+
+\subsection{Multi-assets and $\Value$ in the Mary Era}
+
+Terms of the $\Value$ type represent heterogeneous collections of assets,
+both user-defined, and Ada. In place of the abstract $\ValMonoid$ structure,
+this type is used in the concrete Mary era ledger.
+This section describes the type $\Value$, the operations required on
+it, its relation to $\Coin$. It also as gives the definitions of the
+$\ValMonoid$ functions on $\Value$.
+
+Figure \ref{fig:defs:value} introduces the basic types that make up the $\Value$ type,
+as well as defining the functions required to for $\Value$ to be a $\ValMonoid$.
 
 \begin{figure*}[t!]
-  \emph{Abstract Types}
-  %
-  \begin{align*}
-    \var{aname} \in& ~\AssetName & \text{Asset Names}
-  \end{align*}
-  %
   \emph{Derived types}
   %
   \begin{equation*}
     \begin{array}{r@{~\in~}l@{\qquad=\qquad}lr}
+      \var{aname} & ~\AssetName & \mathsf{ByteString} \\
       \var{pid} & \PolicyID & \ScriptHash \\
+      \var{aid} & \AssetID & \PolicyID \times \AssetName \\
       \var{quan} & \Quantity & \Z \\
       %\text{quantity of a token}\\
       \var{v}, \var{w} & \Value
-      & \PolicyID \to_0 ( \AssetName \to_0 \Quantity )
+      & \Coin \times \PolicyID \to_0 ( \AssetName \to_0 \Quantity )
 %      & \text{a collection of tokens}
     \end{array}
   \end{equation*}
   %
-  \emph{Abstract Functions and Values}
+  \emph{$\ValMonoid$ and auxiliary functions for $\Value$}
   %
   \begin{align*}
-    \mathsf{adaPolicy} \in& ~\PolicyID & \text{Ada Policy ID} \\
-    \mathsf{adaName} \in& ~\AssetName & \text{Ada Asset Name} \\
-    \mathsf{size} \in& ~\Value\to\MemoryEstimate & \text{the size of a Value}
-  \end{align*}
-  \emph{Helper Functions}
-  %
-  \begin{align*}
-    & \fun{inject} \in \Coin\to \Value \\
-    & \fun{inject}~c = \lambda~\var{pid}~\var{aname}.
-      \begin{cases}
-        c & \var{pid} = \mathsf{adaPolicy}~\text{and}~\var{aname} = \mathsf{adaName} \\
-        0 & \text{otherwise}
-      \end{cases}
+    & \fun{policies} ~\in~ \Value \to \powerset{\PolicyID} \\
+    & \fun{policies}~v ~=~ \supp{~v}
     \nextdef
-    & \fun{coin} \in \Value \to \Coin \\
-    & \fun{coin}~v = v~\mathsf{adaPolicy}~\mathsf{adaName}
-    \nextdef \fun{inject} \circ \fun{coin}
-    & \fun{adaOnly} \in \Value \to \Bool \\
-    & \fun{adaOnly}~v =
-      \begin{cases}
-        \True & \fun{inject} \circ \fun{coin} = \fun{id}_{\Value} \\
-        \False & \text{otherwise}
-      \end{cases}
+    %
+    & \fun{anames} ~\in~ \Value \to \powerset{\PolicyID} \\
+    & \fun{anames}~v ~=~ \bigcup_{pid \in\fun{policies}{~v}} \supp{v~pid}
+    \nextdef
+    %
+    & \fun{zero} ~=~ (0, \Nothing)
+    \nextdef
+    %
+    & \fun{coin}~(\var{c}, \wcard) ~=~ \var{c}
+    \nextdef
+    %
+    & \fun{inject}~c  ~=~ (c, \Nothing)
+    \nextdef
+    %
+    & \fun{modifyCoin}~f~(c, v)  ~=~ \var{(f(c), v)}
+    \nextdef
+    %
+    & \fun{size} ~~~ \text{see Section \ref{sec:value-size}}
   \end{align*}
-  \caption{Type Definitions and auxiliary functions for Value}
+  \caption{$\ValMonoid$ Function Definitions and Auxiliary Functions for Value}
   \label{fig:defs:value}
 \end{figure*}
-
-\subsection*{Representing Multi-asset Types and Values}
-We will refer to a pair of a $\PolicyID$ and an
-$\AssetName$ as an $\AssetID$. The $\AssetID$ for Ada is $(\mathsf{adaPolicy}, \mathsf{adaName})$.
-This is symbolic only, no actual minting policy for Ada exists.
-
-The set of tokens that are referred to by the underlying monetary
-policy represents the coinage that the asset supports. A multi-asset
-value, $\Value$ is a finitely supported function of two variables,
-$\PolicyID$ and $\AssetName$ to $\Quantity$.
 
 \begin{itemize}
   \item $\PolicyID$ identifies monetary policies. A policy ID $\var{pid}$ is associated with a script
@@ -80,46 +229,111 @@ $\PolicyID$ and $\AssetName$ to $\Quantity$.
     respects the restrictions that are imposed by the monetary policy.
     See sections \ref{sec:transactions} and \ref{sec:utxo} for details.
 
-  \item $\AssetName$ is a type used to distinguish different tokens with the same $\PolicyID$.
-    Each $aname$ identifies a unique kind of token in $\var{pid}$.
+  \item $\AssetName$ is a byte string used to distinguish different tokens with the same $\PolicyID$.
+    Each $aname$ identifies a unique kind of token out of all the tokens under the
+    $\var{pid}$ policy (but not necessarily among tokens kinds under other policies).
+    The maximum length of this
+    byte string is 32 bytes (this is not explicitly enforced in this spec).
+
+  \item $\AssetID$ is a pair of the policy ID and the asset name. It is a unique and permanent
+  identifier of an asset. That is, there are is no mechanism to change it or
+  any part of it.
+
+  Mary MA tokens are fungible with each other if and only if they belong to the same $\AssetID$,
+  i.e. they have the same $\PolicyID$ and $\AssetName$.
+  The reason the unique identifier is a pair of two terms is to allow
+  minting arbitrary collections of fungible and unique tokens under a single policy.
 
   \item $\Quantity$ is an integer type that represents an amount of a specific $\AssetName$. We associate
     a term $q\in\Quantity$ with a specific token to track how much of that token is contained in a given asset value.
 
   \item $\Value$ is the multi-asset type that is used to represent
-    a collection of tokens, including Ada. If $(\var{pid}, \var{aname})$ is an $\AssetID$ and $v \in \Value$,
+    a collection of tokens, including Ada. This type is a pair, where the first
+    term represents the amount of Ada in the collection, and the second term
+    represents all other assets except Ada.
+
+    If $(\var{pid}, \var{aname})$ is an $\AssetID$ and $v \in \Value$,
     the quantity in $v$ belonging to that $\AssetID$ is $v~\var{pid}~\var{aname}$.
-    Tokens are fungible with each other if and only if they belong to the same $\AssetID$,
-    i.e. they have the same $\PolicyID$ and $\AssetName$. Terms of type $\Value$ are sometimes also referred to as
+    Terms of type $\Value$ are sometimes also referred to as
     \emph{token bundles}.
 
-  \item $\mathsf{adaPolicy}$ and $\mathsf{adaName}$ are the $\PolicyID$ and $\AssetName$ of Ada respectively.
-    It is not possible to mint any token with the $\PolicyID$ $\mathsf{adaPolicy}$, which means that every
-    token in the UTxO belonging to $\mathsf{adaPolicy}$ will have $\AssetName$ $\mathsf{adaName}$.
+   To be precise, the multi-asset
+   type, $\Value$ is a finitely supported function of two variables,
+   $\PolicyID$ and $\AssetName$ to $\Quantity$.
 
-  \item $\mathsf{size}$ returns the size (in units of memory, eg. bytes or words) of a $\Value$.
-  We give this function, alongside implementation-specific constants we have used in it in Section \ref{sec:value-size}.
+  \item $\fun{inject}$ takes a $\Coin$ amount and returns a $\Value$ containing
+  that amount of Ada and no other assets.
 
-  \item $\fun{inject}$ and $\fun{coin}$ convert between the two types,
-  by building a $\Value$ that only contains Ada given by the input, and extracting
-  the amount of Ada as (a $\Coin$) from a $\Value$ respectively.
-  Note that composed as
-
-  \[\fun{coin} \circ \fun{inject} = \fun{id}_{\Coin}\]
-
-  these functions give the identity on $\Coin$, but composed in the opposite order as
-
-  \[\fun{inject} \circ \fun{coin}\]
-
-  they return a $\Value$ containing only the Ada tokens contained in the original $\Value$.
-
-  \item $\fun{adaOnly}$ returns $\True$ if a given $\Value$ contains only Ada.
+  \item $\fun{coin}$ returns the amount of Ada contained in a $\Value$ term (ie.
+  the first term of the pair).
 \end{itemize}
 
-\subsection*{Value Operations and Partial Order}
-We require some operations on $\Value$, including equality, addition and $\leq$ comparison.
+\textbf{The Ada special case.} Making Ada a special case in the $\Value$ definition is useful
+because Ada is the most common type of asset on the ledger. It also can
+be used for special purposes (such as fees) for which other assets cannot be used.
+Moreover, it is unlikely that tokens other than Ada can ever be used for this
+purpose, as the underlying consensus algorithm relies on Ada in a way that
+cannot be extended to user-defined tokens.
+We sometimes refer to Ada as the primary or principal currency. Ada does not,
+for the purposes of the Mary ledger spec, have a $\PolicyID$ or an $\AssetName$.
 
-Addition and binary relations are extended pointwise from $\Coin$ to $\Value$, so if $R$ is a binary relation defined on $\Coin$, like $=$ or $\leq$, and $v, w$ are values, we define
+\subsection{Pointwise Value Operations and Partial Order}
+We have a number of operations on $\Value$ left to define for it to have
+$\ValMonoid$ structure. These are binary relations, addition, and
+scalar multiplication. These are all done
+pointwise in accordance with the usual definitions of these operations on
+finitely supported maps, see Figure \ref{fig:pointwise}.
 
-\[ v~R~w :\Leftrightarrow \forall~\var{pid}~\var{aname}, (v~\var{pid}~\var{aname})~R~(w~\var{pid}~\var{aname}) \]
-\[ (v + w)~\var{pid}~\var{aname} := (v~\var{pid}~\var{aname}) + (w~\var{pid}~\var{aname}). \]
+\begin{figure*}[t!]
+  \begin{align*}
+    & (c, v)~+~(d, w) =& (c+d, ~\{~ pid\mapsto_0 (aname\mapsto_0 (v~\var{pid}~\var{aname})~+~(w~\var{pid}~\var{aname}) ~\vert~ \\
+    & & \var{pid} \in (\fun{policies}~v~\cup~\fun{policies}~w),~\var{aname}~\in~(\fun{anames}~v~\cup~\fun{anames}~w) ~\} )
+    \nextdef
+    %
+    & q~*~(c, v) =& (q*c, ~\{~ pid\mapsto_0 (aname\mapsto_0 (q~*~(v~\var{pid}~\var{aname})) ~\vert~ \\
+    & & \var{pid} \in \fun{policies}~v,~\var{aname}~\in~\fun{anames}~v ~\} )
+    \nextdef
+    %
+    & \fun{pointwise}~R~(c, v)~(d, w) =& (c~=~d) \wedge \forall~(\var{pid} \in \fun{policies}~v~\cup~\fun{policies}~u), \\
+    & & \forall~(\var{aname}~\in~\fun{anames}~v~\cup~\fun{anames}~u),~R~(v~\var{pid}~\var{aname})~(w~\var{pid}~\var{aname})
+  \end{align*}
+  \caption{Pointwise operations on Value}
+  \label{fig:pointwise}
+\end{figure*}
+
+\subsection{Other Examples of $\ValMonoid$.}
+
+We give examples here of $\ValMonoid$-structured types
+that are types similar to $\Value$ in spirit, and are used elsewhere
+in the system (eg. the wallet).
+
+\begin{itemize}
+  \item The compact representation of $\Value$, $\mathsf{CompactValue}$. This
+  is a compressed representation of $\Value$ that is isomorphic to it.
+  All the $\ValMonoid$ operations
+  are defined directly in terms of $\Value$ operations, by first converting
+  to $\Value$, performing the operation, then converting back.
+
+  \item The un-Curried representation of the map part of $\Value$. That is,
+  the map term in $\Value$ has the type
+
+  \[ \AssetID \mapsto \Quantity \]
+
+  In this representation, which is also isomorphic to $\Value$, doing the
+  $\ValMonoid$ operations pointwise directly on this type commutes with conversion to
+  and from $\Value$.
+
+  \item A $\Value$ representation that is not a pair of $\Coin$ and a map, but just
+  the un-Curried map. Here, Ada is presented as having an $\AssetID$,
+  like the other assets. It is still special, though, since we define a new
+  $\AssetID$ type to be
+
+  \[ \mathsf{AssetID'} ~=~ \mathsf{AdaID} \uniondistinct \AssetID \]
+
+  This type is again isomorphic to $\Value$, with commuting operations. For
+  example, the $\fun{inject}$ and $\fun{coin}$ maps are defined as follows :
+
+  \[ \fun{inject}~c = \{ \mathsf{AdaID}~\mapsto~c \} \]
+
+  \[ \fun{coin}~v = v~\mathsf{AdaID} \]
+\end{itemize}

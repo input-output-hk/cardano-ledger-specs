@@ -3,8 +3,9 @@
 
 In Shelley, the protocol parameter $\var{minUTxOValue}$ is used to
 disincentivize attacking nodes by putting many small outputs on the
-UTxO, permanently blocking memory. Because members of the $\Value$
-type can be arbitrary large, the ledger requires a $\UTxO$ entry to
+UTxO, permanently blocking memory. In the Mary era
+and onwards, the $\ValMonoid$ type replaces $\Coin$ in UTxO map. $\ValMonoid$ terms
+can potentially be arbitrarily large, so the ledger requires each $\UTxO$ entry to
 contain a minimum amount of Ada, proportional to its size.
 
 There is also another $\Value$ size consideration with respect to spendability
@@ -22,6 +23,16 @@ causing the output to be come unspendable (these are just a two examples) :
   outputs are impossible to fit inside a single transaction
 \end{itemize}
 
+Note that since this ShelleyMA specification is written in terms of the abstract
+class $\ValMonoid$, the constraints involving both the serialized size and the upper bound estimate
+on the size of a term of any type with $\ValMonoid$ structure must hold.
+Two types are used to define concrete ledgers, $\Coin$ and $\Value$.
+The size calculations for $\Coin$, in practice,
+result in either trivial restrictions in the ledger rules,
+or ones that align with Shelley (as discussed in Section \ref{sec:utxo}).
+
+\subsection{Value Size}
+
 Figure \ref{fig:size-helper} contains abstract and helper functions
 used in calculating the in-memory and serialized representation
 sizes of $\Value$ terms.
@@ -30,8 +41,8 @@ sizes of $\Value$ terms.
   \emph{Abstract Functions}
   %
   \begin{align*}
-    & \fun{serSize} \in \Value \to \MemoryEstimate \\
-    & \text{Gives the size of the serialized representation of a $\Value$}
+    & \fun{serSize} \in \ValMonoid \to \MemoryEstimate \\
+    & \text{Gives the size of the serialized representation of a $\ValMonoid$}
     \nextdef
     & \fun{anameLen} \in \AssetName \to \MemoryEstimate \\
     & \text{Returns the length (in bytes) of an asset name}
@@ -48,7 +59,7 @@ sizes of $\Value$ terms.
     & \text{Returns the sum of the lengths (in bytes) of distinct asset names in a $\Value$}
     & \nextdef
     & \fun{numPids} \in \Value \to \N \\
-    & \fun{numPids}~{vl} ~=~ \|~\supp~{vl}~\| \\
+    & \fun{numPids}~{vl} ~=~ \|~\fun{pids}~{vl}~\| \\
     & \text{The number of policy IDs in a $\Value$}
   \end{align*}
   \caption{Value Size}
@@ -56,7 +67,8 @@ sizes of $\Value$ terms.
 \end{figure*}
 
 The function $\fun{serSize}$, unlike the functions $\fun{size}$ and $\fun{utxoEntrySize}$
-    (explained below), is left abstract. It returns the actual number of bytes a $\Value$
+    (explained below), is left abstract. It returns the actual number of bytes a
+    term (of a type with $\ValMonoid$ structure)
     occupies in the serialized transaction (and hence is implementation-dependent).
 
     One reason for this design decision is that the $\fun{serSize}$ function is used constrain
@@ -66,6 +78,9 @@ The function $\fun{serSize}$, unlike the functions $\fun{size}$ and $\fun{utxoEn
     is not necessary for limiting the size of values in outputs, since this size-bound
     check does not place any additional accounting/monetary constranits on transaction construction,
     unlike the min-Ada requirement.
+
+\subsection{Min UTxO Value}
+\label{sec:min-value}
 
 Figure \ref{fig:min-val-calc} gives the types of constants used in the estimation
 of the size of a UTxO entry, and the associated min-Ada-value.
