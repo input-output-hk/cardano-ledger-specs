@@ -442,7 +442,7 @@ instance
     let stakeRelation = aggregateUtxoCoinByActiveCredential @era ptrs active utxo b
      in pure $ SnapShot (Stake stakeRelation) ds ps
 
--- | Sum up all the Coin for each active staking Credential
+-- | Sum up all the Coin for each active staking Credential. This can replace aggregateUtxoCoinByCredential
 aggregateUtxoCoinByActiveCredential ::
   forall era.
   Era era =>
