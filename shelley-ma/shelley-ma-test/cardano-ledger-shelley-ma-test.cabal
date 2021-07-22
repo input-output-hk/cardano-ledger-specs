@@ -79,7 +79,7 @@ library
     tasty-hunit,
     tasty-quickcheck,
     tasty,
-    text
+    text,
   hs-source-dirs: src
 
 test-suite cardano-ledger-shelley-ma-test

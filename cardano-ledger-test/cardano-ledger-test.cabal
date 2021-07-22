@@ -41,6 +41,17 @@ library
     Test.Cardano.Ledger.Generic.Indexed
     Test.Cardano.Ledger.Generic.Updaters
     Test.Cardano.Ledger.TestableEra
+    Test.Cardano.Ledger.ModelChain
+    Test.Cardano.Ledger.ModelChain.Properties
+    Test.Cardano.Ledger.ModelChain.FeatureSet
+    Test.Cardano.Ledger.ModelChain.Value
+    Test.Cardano.Ledger.ModelChain.Address
+    Test.Cardano.Ledger.ModelChain.Script
+    Test.Cardano.Ledger.ModelChain.Utils
+    Test.Cardano.Ledger.Elaborators
+    Test.Cardano.Ledger.Elaborators.Alonzo
+    Test.Cardano.Ledger.Elaborators.Shelley
+
   build-depends:
     aeson,
     bytestring,
@@ -49,12 +60,20 @@ library
     cardano-ledger-alonzo,
     cardano-ledger-core,
     cardano-ledger-shelley-ma,
+    cardano-ledger-shelley-ma-test,
     cardano-slotting,
     containers,
+    criterion,
     data-default-class,
+    deepseq,
     genvalidity,
     genvalidity-scientific,
+    groups,
+    lens,
+    mtl,
     plutus-ledger-api,
+    plutus-tx,
+    QuickCheck,
     scientific,
     shelley-spec-ledger,
     shelley-spec-ledger-test,
@@ -65,8 +84,7 @@ library
     tasty-hunit,
     tasty-quickcheck,
     time,
-    QuickCheck,
-
+    transformers,
 
 test-suite cardano-ledger-test
   import:             base, project-config
