@@ -1607,7 +1607,7 @@ alonzoUTXOWexamples =
               ( Left
                   [ WrappedShelleyEraFailure
                       ( UtxoFailure
-                          (UtxosFailure (ValidationTagMismatch (IsValidating False)))
+                          (UtxosFailure (ValidationTagMismatch (IsValidating False) ("Script expected to fail, passes.")))
                       )
                   ]
               ),
@@ -1616,7 +1616,7 @@ alonzoUTXOWexamples =
               (trustMe True $ notValidatingTx pf)
               ( Left
                   [ WrappedShelleyEraFailure
-                      (UtxoFailure (UtxosFailure (ValidationTagMismatch (IsValidating True))))
+                      (UtxoFailure (UtxosFailure (ValidationTagMismatch (IsValidating True) (""))))
                   ]
               ),
           testCase "too many execution units for tx" $

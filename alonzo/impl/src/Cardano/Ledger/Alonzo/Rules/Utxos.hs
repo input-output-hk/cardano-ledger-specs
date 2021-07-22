@@ -34,6 +34,7 @@ import Cardano.Ledger.Alonzo.Tx
     txouts,
   )
 import qualified Cardano.Ledger.Alonzo.TxBody as Alonzo
+import Cardano.Ledger.Alonzo.TxInfo (ScriptResult (..))
 import qualified Cardano.Ledger.Alonzo.TxWitness as Alonzo
 import Cardano.Ledger.BaseTypes
   ( Globals,
@@ -58,6 +59,7 @@ import Data.Foldable (toList)
 import qualified Data.Map.Strict as Map
 import Data.Sequence.Strict (StrictSeq)
 import Data.Set (Set)
+import Data.Text
 import GHC.Generics (Generic)
 import GHC.Records (HasField (..))
 import NoThunks.Class (NoThunks)
@@ -177,8 +179,9 @@ scriptsValidateTransition = do
   ei <- liftSTS $ asks epochInfo
   case collectTwoPhaseScriptInputs ei sysSt pp tx utxo of
     Right sLst ->
-      evalScripts @era tx sLst
-        ?!## ValidationTagMismatch (getField @"isValidating" tx)
+      case evalScripts @era tx sLst of
+        Fails sss -> False ?!## ValidationTagMismatch (getField @"isValidating" tx) (pack (Prelude.unlines sss))
+        Passes -> pure ()
     Left info -> failBecause (CollectErrors info)
   pup' <-
     trans @(Core.EraRule "PPUP" era) $
@@ -220,8 +223,9 @@ scriptsNotValidateTransition = do
   ei <- liftSTS $ asks epochInfo
   case collectTwoPhaseScriptInputs ei sysSt pp tx utxo of
     Right sLst ->
-      not (evalScripts @era tx sLst)
-        ?!## ValidationTagMismatch (getField @"isValidating" tx)
+      case (evalScripts @era tx sLst) of
+        Passes -> False ?!## ValidationTagMismatch (getField @"isValidating" tx) (pack ("Script expected to fail, passes."))
+        Fails _sss -> pure ()
     Left info -> failBecause (CollectErrors info)
   pure $
     us
@@ -232,8 +236,8 @@ scriptsNotValidateTransition = do
 data UtxosPredicateFailure era
   = -- | The 'isValidating' tag on the transaction is incorrect. The tag given
     --   here is that provided on the transaction (whereas evaluation of the
-    --   scripts gives the opposite.)
-    ValidationTagMismatch IsValidating
+    --   scripts gives the opposite.). The Text tries to explain why it failed.
+    ValidationTagMismatch IsValidating Text
   | -- | We could not find all the necessary inputs for a Plutus Script.
     --         Previous PredicateFailure tests should make this impossible, but the
     --         consequences of not detecting this means scripts get dropped, so things
@@ -250,7 +254,7 @@ instance
   ) =>
   ToCBOR (UtxosPredicateFailure era)
   where
-  toCBOR (ValidationTagMismatch v) = encode (Sum ValidationTagMismatch 0 !> To v)
+  toCBOR (ValidationTagMismatch v txt) = encode (Sum ValidationTagMismatch 0 !> To v !> To txt)
   toCBOR (CollectErrors cs) =
     encode (Sum (CollectErrors @era) 1 !> To cs)
   toCBOR (UpdateFailure pf) = encode (Sum (UpdateFailure @era) 2 !> To pf)
@@ -263,7 +267,7 @@ instance
   where
   fromCBOR = decode (Summands "UtxosPredicateFailure" dec)
     where
-      dec 0 = SumD ValidationTagMismatch <! From
+      dec 0 = SumD ValidationTagMismatch <! From <! From
       dec 1 = SumD (CollectErrors @era) <! From
       dec 2 = SumD UpdateFailure <! From
       dec n = Invalid n
@@ -274,11 +278,16 @@ deriving stock instance
   ) =>
   Show (UtxosPredicateFailure era)
 
-deriving stock instance
+instance
   ( Shelley.TransUTxOState Eq era,
     Eq (PredicateFailure (Core.EraRule "PPUP" era))
   ) =>
   Eq (UtxosPredicateFailure era)
+  where
+  (ValidationTagMismatch a _) == (ValidationTagMismatch b _) = a == b -- Do not compare the Text in an Eq check.
+  (CollectErrors x) == (CollectErrors y) = x == y
+  (UpdateFailure x) == (UpdateFailure y) = x == y
+  _ == _ = False
 
 instance
   ( Shelley.TransUTxOState NoThunks era,
@@ -332,13 +341,15 @@ constructValidated globals (UtxoEnv _ pp _ _) st tx =
             ValidatedTx
               (getField @"body" tx)
               (getField @"wits" tx)
-              (IsValidating scriptEvalResult)
+              (IsValidating (lift scriptEvalResult))
               (getField @"auxiliaryData" tx)
        in pure vTx
   where
     utxo = _utxo st
     sysS = systemStart globals
     ei = epochInfo globals
+    lift Passes = True
+    lift (Fails _) = False
 
 --------------------------------------------------------------------------------
 -- 2-phase checks
