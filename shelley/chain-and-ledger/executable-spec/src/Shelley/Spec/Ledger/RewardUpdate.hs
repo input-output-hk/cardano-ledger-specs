@@ -69,7 +69,7 @@ import GHC.Records (HasField (..))
 import NoThunks.Class (NoThunks (..), allNoThunks)
 import Numeric.Natural (Natural)
 import Shelley.Spec.Ledger.EpochBoundary
-  ( SnapShots (..),
+  ( SnapShot (..),
     Stake (..),
     poolStake,
   )
@@ -160,7 +160,8 @@ emptyRewardUpdate =
 
 -- | To pulse the reward update, we need a snap shot of the EpochState particular to this computation
 data RewardSnapShot crypto = RewardSnapShot
-  { rewSnapshots :: !(SnapShots crypto),
+  { rewPstakeGo :: !(SnapShot crypto),
+    rewFeeSS :: !Coin,
     rewa0 :: !NonNegativeInterval,
     rewnOpt :: !Natural,
     rewprotocolVersion :: !ProtVer,
@@ -178,9 +179,9 @@ instance NoThunks (RewardSnapShot crypto)
 instance NFData (RewardSnapShot crypto)
 
 instance CC.Crypto crypto => ToCBOR (RewardSnapShot crypto) where
-  toCBOR (RewardSnapShot ss a0 nopt ver nm dr1 r dt1 tot pot) =
+  toCBOR (RewardSnapShot go fee a0 nopt ver nm dr1 r dt1 tot pot) =
     encode
-      ( Rec RewardSnapShot !> To ss !> E boundedRationalToCBOR a0 !> To nopt !> To ver !> To nm !> To dr1
+      ( Rec RewardSnapShot !> To go !> To fee !> To a0 !> To nopt !> To ver !> To nm !> To dr1
           !> To r
           !> To dt1
           !> To tot
@@ -188,7 +189,7 @@ instance CC.Crypto crypto => ToCBOR (RewardSnapShot crypto) where
       )
 
 instance CC.Crypto crypto => FromCBOR (RewardSnapShot crypto) where
-  fromCBOR = decode (RecD RewardSnapShot <! From <! D boundedRationalFromCBOR <! From <! From <! From <! From <! From <! From <! From <! From)
+  fromCBOR = decode (RecD RewardSnapShot <! From <! From <! From <! From <! From <! From <! From <! From <! From <! From <! From)
 
 -- Some functions that only need a subset of the PParams can be
 -- passed a RewardSnapShot, as it copies of some values from PParams
@@ -329,7 +330,7 @@ rewardStakePool
 --     to fix both the monad 'm' and the 'ans' type, to the context where we will use
 --     the type as a Pulser. The type must have 'm' and 'ans' as its last two
 --     parameters so we can make a Pulsable instance.
---     RSPL = Reward Serializable Listbased Pulser
+--     RSLP = Reward Serializable Listbased Pulser
 data RewardPulser c (m :: Type -> Type) ans where
   RSLP ::
     (ans ~ RewardAns c, m ~ ProvM (KeyHashPoolProvenance c) ShelleyBase) =>

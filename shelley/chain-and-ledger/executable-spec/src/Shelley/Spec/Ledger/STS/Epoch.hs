@@ -22,7 +22,7 @@ where
 import Cardano.Ledger.BaseTypes (ShelleyBase)
 import Cardano.Ledger.Coin (Coin (..))
 import qualified Cardano.Ledger.Core as Core
-import Cardano.Ledger.Era (Era (Crypto))
+import Cardano.Ledger.Era (Era)
 import Cardano.Ledger.Shelley.Constraints (UsesTxOut, UsesValue)
 import Cardano.Ledger.Slot (EpochNo)
 import Control.SetAlgebra (eval, (⨃))
@@ -92,8 +92,8 @@ instance
     UsesValue era,
     Embed (Core.EraRule "SNAP" era) (EPOCH era),
     Environment (Core.EraRule "SNAP" era) ~ LedgerState era,
-    State (Core.EraRule "SNAP" era) ~ SnapShots (Crypto era),
-    Signal (Core.EraRule "SNAP" era) ~ (),
+    State (Core.EraRule "SNAP" era) ~ SnapShots era,
+    Signal (Core.EraRule "SNAP" era) ~ EpochNo,
     Embed (Core.EraRule "POOLREAP" era) (EPOCH era),
     Environment (Core.EraRule "POOLREAP" era) ~ Core.PParams era,
     State (Core.EraRule "POOLREAP" era) ~ PoolreapState era,
@@ -127,8 +127,8 @@ epochTransition ::
   forall era.
   ( Embed (Core.EraRule "SNAP" era) (EPOCH era),
     Environment (Core.EraRule "SNAP" era) ~ LedgerState era,
-    State (Core.EraRule "SNAP" era) ~ SnapShots (Crypto era),
-    Signal (Core.EraRule "SNAP" era) ~ (),
+    State (Core.EraRule "SNAP" era) ~ SnapShots era,
+    Signal (Core.EraRule "SNAP" era) ~ EpochNo,
     Embed (Core.EraRule "POOLREAP" era) (EPOCH era),
     Environment (Core.EraRule "POOLREAP" era) ~ Core.PParams era,
     State (Core.EraRule "POOLREAP" era) ~ PoolreapState era,
@@ -143,7 +143,7 @@ epochTransition ::
   TransitionRule (EPOCH era)
 epochTransition = do
   TRC
-    ( _,
+    ( (),
       EpochState
         { esAccountState = acnt,
           esSnapshots = ss,
@@ -158,7 +158,7 @@ epochTransition = do
   let utxoSt = _utxoState ls
   let DPState dstate pstate = _delegationState ls
   ss' <-
-    trans @(Core.EraRule "SNAP" era) $ TRC (ls, ss, ())
+    trans @(Core.EraRule "SNAP" era) $ TRC (ls, ss, e)
 
   let PState pParams fPParams _ = pstate
       ppp = eval (pParams ⨃ fPParams)

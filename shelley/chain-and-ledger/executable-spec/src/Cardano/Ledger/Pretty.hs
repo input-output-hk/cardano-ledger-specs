@@ -108,6 +108,7 @@ import Shelley.Spec.Ledger.CompactAddr (CompactAddr (..), decompactAddr)
 import Shelley.Spec.Ledger.Delegation.Certificates (IndividualPoolStake (..), PoolDistr (..))
 import Shelley.Spec.Ledger.EpochBoundary
   ( BlocksMade (..),
+    PulsingStakeDistr (..),
     SnapShot (..),
     SnapShots (..),
     Stake (..),
@@ -499,10 +500,11 @@ ppRewardUpdate (RewardUpdate dt dr rss df nonmyop) =
     ]
 
 ppRewardSnapShot :: RewardSnapShot crypto -> PDoc
-ppRewardSnapShot (RewardSnapShot snaps a0 nopt ver non deltaR1 rR deltaT1 total pot) =
+ppRewardSnapShot (RewardSnapShot go fee a0 nopt ver non deltaR1 rR deltaT1 total pot) =
   ppRecord
     "RewardSnapShot"
-    [ ("snapshots", ppSnapShots snaps),
+    [ ("GoSnapShot", ppSnapShot go),
+      ("feeSnapShot", ppCoin fee),
       ("a0", ppRational $ unboundRational a0),
       ("nOpt", ppNatural nopt),
       ("version", ppProtVer ver),
@@ -810,11 +812,15 @@ ppSnapShots :: SnapShots crypto -> PDoc
 ppSnapShots (SnapShots mark set go fees) =
   ppRecord
     "SnapShots"
-    [ ("pstakeMark", ppSnapShot mark),
+    [ ("pstakeMark", ppPulsingStakeDistr mark),
       ("pstakeSet", ppSnapShot set),
       ("pstakeGo", ppSnapShot go),
       ("fee", ppCoin fees)
     ]
+
+ppPulsingStakeDistr :: PulsingStakeDistr era m -> PDoc
+ppPulsingStakeDistr (Completed ss) = ppSnapShot ss
+ppPulsingStakeDistr (StillPulsing _) = ppString "StillPulsing"
 
 instance PrettyA (Stake crypto) where prettyA = ppStake
 

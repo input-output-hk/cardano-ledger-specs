@@ -26,6 +26,7 @@ module Cardano.Ledger.Era
 where
 
 import qualified Cardano.Crypto.Hash as Hash
+import Cardano.Ledger.Address (Addr)
 import Cardano.Ledger.AuxiliaryData (AuxiliaryDataHash)
 import Cardano.Ledger.Coin (Coin)
 import Cardano.Ledger.Compactible (Compactible)
@@ -254,6 +255,7 @@ type WellFormed era =
     HasField "scriptWits" (Core.Tx era) (Map (ScriptHash (Crypto era)) (Core.Script era)),
     -- TxOut
     HasField "value" (Core.TxOut era) (Core.Value era),
+    HasField "address" (Core.TxOut era) (Addr (Crypto era)),
     -- HashAnnotated
     HashAnnotated (Core.AuxiliaryData era) EraIndependentAuxiliaryData (Crypto era),
     HashAnnotated (Core.TxBody era) EraIndependentTxBody (Crypto era),

@@ -32,11 +32,20 @@ import Cardano.Ledger.Slot (EpochNo, SlotNo, epochInfoEpoch)
 import Control.Monad.Trans.Reader (asks)
 import Control.SetAlgebra (eval, (⨃))
 import Control.State.Transition
+import Data.Functor.Identity (Identity (..))
 import qualified Data.Map.Strict as Map
 import GHC.Generics (Generic)
 import NoThunks.Class (NoThunks (..))
-import Shelley.Spec.Ledger.EpochBoundary (SnapShots (_pstakeMark))
-import Shelley.Spec.Ledger.LedgerState (DPState (..), DState (..), EpochState (..), FutureGenDeleg (..), LedgerState (..), NewEpochState (..), PulsingRewUpdate)
+import Shelley.Spec.Ledger.EpochBoundary (PulsingStakeDistr (..), SnapShots (_pstakeMark), pulse)
+import Shelley.Spec.Ledger.LedgerState
+  ( DPState (..),
+    DState (..),
+    EpochState (..),
+    FutureGenDeleg (..),
+    LedgerState (..),
+    NewEpochState (..),
+    PulsingRewUpdate,
+  )
 import Shelley.Spec.Ledger.STS.NewEpoch (NEWEPOCH, NewEpochPredicateFailure)
 import Shelley.Spec.Ledger.STS.Rupd (RUPD, RupdEnv (..), RupdPredicateFailure)
 
@@ -143,7 +152,6 @@ validatingTickTransition nes slot = do
   epoch <- liftSTS $ do
     ei <- asks epochInfo
     epochInfoEpoch ei slot
-
   nes' <- trans @(Core.EraRule "NEWEPOCH" era) $ TRC ((), nes, epoch)
   let es'' = adoptGenesisDelegs (nesEs nes') slot
 
@@ -151,7 +159,8 @@ validatingTickTransition nes slot = do
 
 bheadTransition ::
   forall era.
-  ( Embed (Core.EraRule "NEWEPOCH" era) (TICK era),
+  ( Era era,
+    Embed (Core.EraRule "NEWEPOCH" era) (TICK era),
     Embed (Core.EraRule "RUPD" era) (TICK era),
     STS (TICK era),
     State (TICK era) ~ NewEpochState era,
@@ -165,23 +174,31 @@ bheadTransition ::
   ) =>
   TransitionRule (TICK era)
 bheadTransition = do
-  TRC ((), nes@(NewEpochState _ bprev _ es _ _), slot) <-
+  TRC ((), nes@(NewEpochState _ bprev _ es _ _), slotno) <-
     judgmentContext
+  nes1 <- validatingTickTransition @TICK nes slotno
 
-  nes' <- validatingTickTransition @TICK nes slot
-
-  -- Here we force the evaluation of the mark snapshot.
-  -- We do NOT force it in the TICKF and TICKN rule
-  -- so that it can remain a thunk when the consensus
-  -- layer computes the ledger view across the epoch boundary.
-  let !_ = _pstakeMark . esSnapshots . nesEs $ nes'
+  -- Here we pulse the evaluation of the mark snapshot.
+  -- The pulser was created when the consensus layer computed
+  -- the ledger view at the epoch boundary. Creation of the
+  -- pulser is cheap, and we run a little bit of the computation
+  -- here, when each block is ticked. At the end of the epoch,
+  -- the computation should be done (or at least close to done). In
+  -- case it is not, we complete it when we rotate the snapshots.
+  -- See the Snap rule, for where this is done.
+  let epochstate = nesEs nes1
+      snapshots = esSnapshots epochstate
+      mark :: PulsingStakeDistr era Identity
+      mark = _pstakeMark snapshots
+      !mark2 = pulse mark
+      !nes2 = nes1 {nesEs = epochstate {esSnapshots = snapshots {_pstakeMark = mark2}}}
 
   ru'' <-
     trans @(Core.EraRule "RUPD" era) $
-      TRC (RupdEnv bprev es, nesRu nes', slot)
+      TRC (RupdEnv bprev es, nesRu nes2, slotno)
 
-  let nes'' = nes' {nesRu = ru''}
-  pure nes''
+  let nes3 = nes2 {nesRu = ru''}
+  pure nes3
 
 instance
   ( UsesTxOut era,
@@ -256,7 +273,7 @@ instance
   initialRules = []
   transitionRules =
     [ do
-        TRC ((), nes, slot) <- judgmentContext
+        TRC (_, nes, slot) <- judgmentContext
         validatingTickTransition nes slot
     ]
 
